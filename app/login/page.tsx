@@ -28,8 +28,16 @@ export default function LoginPage() {
     
     // Simple hardcoded check for demo purposes
     if (teacherEmail === "admin@itland.com" && teacherPassword === "admin123") {
-        document.cookie = "user-role=teacher; path=/"
-        localStorage.setItem("currentUser", JSON.stringify({ name: "Alex Teacher", email: "admin@itland.com", role: "teacher" }))
+        const user = { name: "Alex Teacher", email: "admin@itland.com", role: "teacher", id: "admin-1" }
+        
+        // Create server-side session
+        await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user })
+        })
+
+        localStorage.setItem("currentUser", JSON.stringify(user))
         router.push("/")
     } else {
         alert("Invalid email or password")
@@ -51,9 +59,16 @@ export default function LoginPage() {
         )
 
         if (student) {
-            document.cookie = `user-role=student; path=/`
-            document.cookie = `student-id=${student.id}; path=/`
-            localStorage.setItem("currentUser", JSON.stringify({ ...student, role: "student" }))
+            const userData = { ...student, role: "student" }
+            
+            // Create server-side session
+            await fetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user: userData })
+            })
+
+            localStorage.setItem("currentUser", JSON.stringify(userData))
             // Keep student-specific key for backward compatibility if needed elsewhere
             localStorage.setItem("currentStudent", JSON.stringify(student))
             router.push("/student")

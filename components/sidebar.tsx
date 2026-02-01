@@ -76,10 +76,10 @@ export function Sidebar() {
             )
           })}
           <button
-            onClick={() => {
-              // clear any auth state if we had any
-              document.cookie = "user-role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;"
-              document.cookie = "student-id=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;"
+            onClick={async () => {
+              // clear server-side session
+              await fetch("/api/auth/logout", { method: "POST" })
+              
               localStorage.removeItem("currentUser")
               localStorage.removeItem("currentStudent")
               window.location.href = "/login"

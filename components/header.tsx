@@ -48,10 +48,10 @@ export function Header({ title, subtitle, user }: HeaderProps) {
     }
   }, [user])
 
-  const handleLogout = () => {
-    // Clear cookies
-    document.cookie = "user-role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;"
-    document.cookie = "student-id=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;"
+  const handleLogout = async () => {
+    // Clear server-side session
+    await fetch("/api/auth/logout", { method: "POST" })
+    
     // Clear storage
     localStorage.removeItem("currentUser")
     localStorage.removeItem("currentStudent")
