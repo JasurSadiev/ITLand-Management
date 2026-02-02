@@ -33,11 +33,13 @@ export async function middleware(request: NextRequest) {
     const userRole = (payload.user as any)?.role
 
     // 4. Role-based protection
-    if (pathname.startsWith("/student") && userRole !== "student") {
+    const isStudentPath = pathname === "/student" || pathname.startsWith("/student/")
+
+    if (isStudentPath && userRole !== "student") {
       return NextResponse.redirect(new URL("/login", request.url))
     }
 
-    if (!pathname.startsWith("/student") && userRole !== "teacher") {
+    if (!isStudentPath && userRole !== "teacher") {
       return NextResponse.redirect(new URL("/student", request.url))
     }
 
