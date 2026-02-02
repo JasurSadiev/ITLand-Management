@@ -22,6 +22,20 @@ export async function POST(request: Request) {
       sameSite: "lax",
     })
 
+    response.cookies.set("user-role", user.role, {
+      expires,
+      httpOnly: false,
+      path: "/",
+    })
+
+    if (user.role === "student") {
+      response.cookies.set("student-id", user.id, {
+        expires,
+        httpOnly: false,
+        path: "/",
+      })
+    }
+
     return response
   } catch (error) {
     console.error("Login API Error:", error)
