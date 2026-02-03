@@ -316,7 +316,25 @@ export function LessonForm({ open, onOpenChange, lesson, students, onSave, onDel
                   </Popover>
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="timezone">Timezone *</Label>
+                  <Select
+                    value={formData.timezone || "UTC"}
+                    onValueChange={(tz) => setFormData({ ...formData, timezone: tz })}
+                  >
+                    <SelectTrigger id="timezone">
+                      <SelectValue placeholder="Select Timezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIMEZONES.map((tz) => (
+                        <SelectItem key={tz.value} value={tz.value}>
+                          {tz.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="time">Time *</Label>
                   <Input
@@ -409,7 +427,25 @@ export function LessonForm({ open, onOpenChange, lesson, students, onSave, onDel
                   </Popover>
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="timezone">Timezone *</Label>
+                  <Select
+                    value={formData.timezone || "UTC"}
+                    onValueChange={(tz) => setFormData({ ...formData, timezone: tz })}
+                  >
+                    <SelectTrigger id="timezone">
+                      <SelectValue placeholder="Select Timezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIMEZONES.map((tz) => (
+                        <SelectItem key={tz.value} value={tz.value}>
+                          {tz.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="time">Time *</Label>
                   <Input
@@ -480,7 +516,25 @@ export function LessonForm({ open, onOpenChange, lesson, students, onSave, onDel
                   </div>
                 )}
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="timezone">Timezone *</Label>
+                  <Select
+                    value={formData.timezone || "UTC"}
+                    onValueChange={(tz) => setFormData({ ...formData, timezone: tz })}
+                  >
+                    <SelectTrigger id="timezone">
+                      <SelectValue placeholder="Select Timezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIMEZONES.map((tz) => (
+                        <SelectItem key={tz.value} value={tz.value}>
+                          {tz.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="time">Time *</Label>
                   <Input
