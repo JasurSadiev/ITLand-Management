@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, DollarSign } from "lucide-react"
 import { toZonedTime } from "date-fns-tz"
 import { useMemo, useState, useEffect } from "react"
+import { format } from "date-fns"
 import type { Lesson, Student } from "@/lib/types"
 
 interface CalendarViewProps {
@@ -194,7 +195,10 @@ export function CalendarView({
   }
 
   const getLessonsForDate = (date: Date) => {
-    const dateStr = date.toISOString().split("T")[0]
+    const year = date.getFullYear()
+    const month = (date.getMonth() + 1).toString().padStart(2, "0")
+    const day = date.getDate().toString().padStart(2, "0")
+    const dateStr = `${year}-${month}-${day}`
     return lessons.filter((l) => l.date === dateStr)
   }
 
@@ -254,7 +258,8 @@ export function CalendarView({
           <div className="relative space-y-1">
             {isToday(selectedDate) && <CurrentTimeLine timezone={timezone} />}
             {timeSlots.map((time) => {
-              const lessonsAtTime = dayLessons.filter((l) => l.time === time)
+              const hourStr = time.split(":")[0]
+              const lessonsAtTime = dayLessons.filter((l) => l.time.startsWith(`${hourStr}:`))
               return (
                 <div key={time} className="flex min-h-[60px] border-t border-border">
                   <div className="w-20 py-2 text-sm text-muted-foreground">{time}</div>
@@ -368,7 +373,8 @@ export function CalendarView({
                   <div className="relative">
                     {isToday(day) && <CurrentTimeLine timezone={timezone} />}
                     {timeSlots.map((time) => {
-                        const lessonsAtTime = dayLessons.filter((l) => l.time === time)
+                        const hourStr = time.split(":")[0]
+                        const lessonsAtTime = dayLessons.filter((l) => l.time.startsWith(`${hourStr}:`))
                         return (
                         <div key={time} className="relative h-16 border-b border-border p-0.5">
                             {lessonsAtTime.map((lesson) => (

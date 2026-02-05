@@ -20,6 +20,7 @@ const mapStudentFromDB = (data: any): Student => ({
   notes: data.notes,
   tags: data.tags || [],
   lessonBalance: data.lesson_balance || 0,
+  preferences: data.preferences,
   createdAt: data.created_at,
   updatedAt: data.updated_at,
 })
@@ -115,6 +116,7 @@ export const api = {
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes
     if (updates.tags !== undefined) dbUpdates.tags = updates.tags
     if (updates.lessonBalance !== undefined) dbUpdates.lesson_balance = updates.lessonBalance
+    if (updates.preferences !== undefined) dbUpdates.preferences = updates.preferences
 
     const { data, error } = await supabase
       .from("students")

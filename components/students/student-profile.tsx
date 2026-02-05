@@ -6,8 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Mail, Phone, MessageCircle, Calendar, DollarSign, Clock, Edit, BookOpen, Lock } from "lucide-react"
+import { Mail, Phone, MessageCircle, Calendar as CalendarIcon, DollarSign, Clock, Edit, BookOpen, Lock, Download, CalendarDays } from "lucide-react"
 import type { Student, Lesson, Payment, Homework, Package } from "@/lib/types"
+import { useState } from "react"
+import { format, isWithinInterval, startOfMonth, endOfMonth } from "date-fns"
+import { jsPDF } from "jspdf"
+import autoTable from "jspdf-autotable"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { DateRange } from "react-day-picker"
+import { cn } from "@/lib/utils"
 
 interface StudentProfileProps {
   open: boolean
@@ -30,6 +38,12 @@ export function StudentProfile({
   packages,
   onEdit,
 }: StudentProfileProps) {
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  })
+  const [isGenerating, setIsGenerating] = useState(false)
+
   if (!student) return null
 
   const studentLessons = lessons.filter((l) => l.studentIds.includes(student.id))
@@ -54,6 +68,7 @@ export function StudentProfile({
     "cancelled-teacher": "bg-orange-100 text-orange-700",
     rescheduled: "bg-purple-100 text-purple-700",
     "no-show": "bg-gray-100 text-gray-700",
+    "reschedule-requested": "bg-yellow-100 text-yellow-700",
   }
 
   const initials = student.fullName
@@ -61,6 +76,92 @@ export function StudentProfile({
     .map((n) => n[0])
     .join("")
     .toUpperCase()
+
+
+  const handleDownloadReport = async () => {
+    if (!student || !dateRange?.from || !dateRange?.to) return
+
+    setIsGenerating(true)
+    try {
+      const doc = new jsPDF()
+      const filteredLessons = studentLessons
+        .filter((l) => {
+          const lessonDate = new Date(l.date)
+          return isWithinInterval(lessonDate, {
+            start: dateRange.from!,
+            end: dateRange.to!,
+          })
+        })
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+      // Counts for summary
+      const conductedCount = filteredLessons.filter(l => l.status === "completed").length
+      const cancelledCount = filteredLessons.filter(l => l.status === "cancelled-student" || l.status === "cancelled-teacher").length
+      const noShowCount = filteredLessons.filter(l => l.status === "no-show").length
+      const rescheduledCount = filteredLessons.filter(l => l.status === "rescheduled").length
+
+      // Header
+      doc.setFontSize(20)
+      doc.text("Lesson Report", 14, 22)
+      
+      doc.setFontSize(12)
+      doc.setTextColor(100)
+      doc.text(`Student: ${student.fullName}`, 14, 32)
+      doc.text(`Period: ${format(dateRange.from, "MMM d, yyyy")} - ${format(dateRange.to, "MMM d, yyyy")}`, 14, 38)
+      
+      const tableData = filteredLessons.map((l) => [
+        format(new Date(l.date), "MMM d, yyyy"),
+        l.time,
+        l.subject || "N/A",
+        `${l.duration} min`,
+        l.status.replace("-", " "),
+        l.notes || ""
+      ])
+
+      autoTable(doc, {
+        startY: 45,
+        head: [["Date", "Time", "Subject", "Duration", "Status", "Notes"]],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [79, 70, 229] }, // Indigo-600
+        styles: { fontSize: 10 },
+      })
+
+      // Summary Section
+      const lastTable = (doc as any).lastAutoTable
+      const finalY = (lastTable ? lastTable.finalY : 45) + 15
+      doc.setFontSize(14)
+      doc.setTextColor(0)
+      doc.text("Report Summary", 14, finalY)
+      
+      doc.setFontSize(11)
+      doc.setTextColor(80)
+      doc.text(`Total Conducted Lessons: ${conductedCount}`, 14, finalY + 8)
+      doc.text(`Total Cancelled Lessons: ${cancelledCount}`, 14, finalY + 14)
+      
+      let currentY = finalY + 20
+      if (noShowCount > 0) {
+        doc.text(`Total No-shows: ${noShowCount}`, 14, currentY)
+        currentY += 6
+      }
+      if (rescheduledCount > 0) {
+        doc.text(`Total Rescheduled Lessons: ${rescheduledCount}`, 14, currentY)
+      }
+
+      const filename = `Lesson_Report_${student.fullName.replace(/\s+/g, "_")}_${format(new Date(), "yyyy-MM-dd")}.pdf`
+      
+      // Open in new tab instead of forcing download to avoid browser security blocks on HTTP
+      const blob = doc.output("blob")
+      const url = URL.createObjectURL(blob)
+      window.open(url, "_blank")
+      // Revoking URL might break the new tab if it hasn't loaded 
+      // but jspdf blobs are usually small enough that it's okay, or we can skip it
+    } catch (error) {
+      console.error("Error generating PDF:", error)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -86,6 +187,64 @@ export function StudentProfile({
               Edit
             </Button>
           </div>
+
+          {/* Report Download Section */}
+          <Card className="border-indigo-100 bg-indigo-50/30">
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-indigo-900">
+                  <Download className="h-4 w-4" />
+                  Lesson Report for Parents
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "justify-start text-left font-normal w-[240px]",
+                          !dateRange && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarDays className="mr-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, "LLL dd, y")} -{" "}
+                              {format(dateRange.to, "LLL dd, y")}
+                            </>
+                          ) : (
+                            format(dateRange.from, "LLL dd, y")
+                          )
+                        ) : (
+                          <span>Pick a date range</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={2}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Button 
+                    size="sm" 
+                    className="bg-indigo-600 hover:bg-indigo-700"
+                    onClick={handleDownloadReport}
+                    disabled={isGenerating || !dateRange?.from || !dateRange?.to}
+                  >
+                    {isGenerating ? "Generating..." : "View/Print PDF"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Contact buttons */}
           <div className="flex gap-2">
@@ -125,7 +284,7 @@ export function StudentProfile({
           <div className="grid grid-cols-4 gap-3">
             <Card>
               <CardContent className="p-4 text-center">
-                <Calendar className="h-5 w-5 mx-auto text-muted-foreground" />
+                <CalendarIcon className="h-5 w-5 mx-auto text-muted-foreground" />
                 <p className="text-2xl font-bold mt-1">{completedLessons}</p>
                 <p className="text-xs text-muted-foreground">Completed</p>
               </CardContent>

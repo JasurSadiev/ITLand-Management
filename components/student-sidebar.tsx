@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 // Use BookOpen as logo icon, LogOut for logout
 import { BookOpen, LogOut, LayoutDashboard, Calendar, FileText, Settings } from "lucide-react"
+import { useCustomization } from "@/lib/context"
 
 const navigation = [
   { name: "Dashboard", href: "/student", icon: LayoutDashboard },
@@ -13,8 +14,14 @@ const navigation = [
   { name: "Settings", href: "/student/settings", icon: Settings },
 ]
 
-export function StudentSidebar() {
+interface StudentSidebarProps {
+  theme?: string
+}
+
+export function StudentSidebar({ theme: propTheme }: StudentSidebarProps) {
   const pathname = usePathname()
+  const { theme: contextTheme, preferences } = useCustomization()
+  const theme = propTheme || contextTheme
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-card">
@@ -40,7 +47,7 @@ export function StudentSidebar() {
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-indigo-50 text-indigo-600"
+                    ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
@@ -51,8 +58,19 @@ export function StudentSidebar() {
           })}
         </nav>
 
-        {/* Bottom Navigation */}
-        <div className="border-t border-border px-3 py-4">
+        {/* Profile & Logout */}
+        <div className="border-t border-border px-3 py-4 space-y-2">
+          <div className="flex items-center gap-3 px-3 py-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xl">
+              {preferences?.avatarEmoji || "👨‍💻"}
+            </div>
+            <div className="flex-1 overflow-hidden">
+                <p className="text-sm font-medium truncate">
+                    {typeof window !== "undefined" ? JSON.parse(localStorage.getItem("currentStudent") || "{}").fullName || "Student" : "Student"}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">Student Account</p>
+            </div>
+          </div>
           <button
             onClick={async () => {
               // clear server-side session

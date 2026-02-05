@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { RefreshCw, Save, Shield } from "lucide-react"
 import { store } from "@/lib/store"
+import { PersonalizationCard } from "@/components/personalization-card"
 import type { User } from "@/lib/types"
 
 export default function SettingsPage() {
@@ -39,6 +40,16 @@ export default function SettingsPage() {
       store.resetAll()
       window.location.reload()
     }
+  }
+
+  const handleUpdatePreferences = (updates: Partial<User["preferences"]>) => {
+    if (!user) return
+    const updatedUser = { 
+        ...user, 
+        preferences: { ...(user.preferences || {}), ...updates } 
+    }
+    setUser(updatedUser)
+    store.setCurrentUser(updatedUser)
   }
 
   const initials = user.name
@@ -110,6 +121,11 @@ export default function SettingsPage() {
                 </Button>
               </CardContent>
             </Card>
+
+            <PersonalizationCard 
+                preferences={user.preferences || {}} 
+                onChange={(updates) => handleUpdatePreferences(updates as any)} 
+            />
 
             {/* Permissions */}
             <Card>

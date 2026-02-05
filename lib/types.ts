@@ -20,6 +20,13 @@ export interface Student {
   createdAt: string
   updatedAt: string
   password?: string
+  preferences?: {
+    theme?: "indigo" | "rose" | "emerald" | "amber" | "violet"
+    avatarEmoji?: string
+    greetingStyle?: "default" | "motivator" | "space" | "cyber"
+    confettiEnabled?: boolean
+    showMotivation?: boolean
+  }
 }
 
 export type RecurrenceType = "one-time" | "weekly" | "specific-days" | "makeup"
@@ -118,4 +125,11 @@ export interface User {
   name: string
   email: string
   role: UserRole
+  preferences?: {
+    theme?: "indigo" | "rose" | "emerald" | "amber" | "violet"
+    avatarEmoji?: string
+    greetingStyle?: "default" | "motivator" | "space" | "cyber"
+    confettiEnabled?: boolean
+    showMotivation?: boolean
+  }
 }

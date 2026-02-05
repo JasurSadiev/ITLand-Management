@@ -13,6 +13,7 @@ import { toZonedTime, format, fromZonedTime } from "date-fns-tz"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
+import { useConfetti } from "@/components/confetti-provider"
 
 export default function StudentHomeworkPage() {
   const [student, setStudent] = useState<Student | null>(null)
@@ -20,8 +21,10 @@ export default function StudentHomeworkPage() {
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [loading, setLoading] = useState(true)
   const [submitOpen, setSubmitOpen] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [selectedHw, setSelectedHw] = useState<Homework | null>(null)
   const [submissionText, setSubmissionText] = useState("")
+  const { fire } = useConfetti()
 
   useEffect(() => {
     const studentData = localStorage.getItem("currentStudent")
@@ -94,6 +97,9 @@ export default function StudentHomeworkPage() {
         submissionText: submissionText,
         submittedAt: new Date().toISOString()
       })
+      if (student?.preferences?.confettiEnabled) {
+        fire()
+      }
       toast.success("Homework submitted successfully!")
       setSubmitOpen(false)
       if (student) loadData(student.id)
@@ -153,9 +159,21 @@ export default function StudentHomeworkPage() {
                       </CardHeader>
                       <CardContent className="space-y-4">
                         {hw.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-3">{hw.description}</p>
+                          <p className="text-sm text-muted-foreground line-clamp-2">{hw.description}</p>
                         )}
                         <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            className="w-full gap-2 bg-transparent" 
+                            size="sm" 
+                            onClick={() => {
+                              setSelectedHw(hw)
+                              setDetailsOpen(true)
+                            }}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            View Details
+                          </Button>
                           <Button className="w-full gap-2" size="sm" onClick={() => handleOpenSubmit(hw)}>
                             <Send className="h-4 w-4" />
                             Submit Work
@@ -196,6 +214,19 @@ export default function StudentHomeworkPage() {
                         <p className="text-sm italic">{hw.feedback}</p>
                       </div>
                     )}
+                    <div className="p-4 border-t flex justify-end">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-primary hover:text-primary/80"
+                        onClick={() => {
+                          setSelectedHw(hw)
+                          setDetailsOpen(true)
+                        }}
+                      >
+                        View My Submission
+                      </Button>
+                    </div>
                   </Card>
                 ))}
               </div>
@@ -213,6 +244,12 @@ export default function StudentHomeworkPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {selectedHw?.description && (
+               <div className="rounded-lg bg-muted/50 p-3 border text-sm">
+                  <p className="font-semibold mb-1">Instructions:</p>
+                  <p className="text-muted-foreground">{selectedHw.description}</p>
+               </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium">Submission Details</label>
               <Textarea 
@@ -229,6 +266,92 @@ export default function StudentHomeworkPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setSubmitOpen(false)}>Cancel</Button>
             <Button onClick={handleSubmit} disabled={!submissionText.trim()}>Submit Homework</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Homework Details Modal */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <div className="flex items-center justify-between mt-2">
+               <DialogTitle className="text-2xl">{selectedHw?.title}</DialogTitle>
+               <Badge className={selectedHw?.status === 'assigned' ? 'bg-blue-100 text-blue-700 border-none' : 'bg-emerald-100 text-emerald-700 border-none'}>
+                  {selectedHw?.status}
+               </Badge>
+            </div>
+            <DialogDescription className="flex items-center gap-2 pt-1 font-medium text-destructive">
+               <Clock className="h-4 w-4" />
+               Deadline: {selectedHw ? formatDeadline(selectedHw) : ''}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 pt-4">
+            <div>
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-2">Description / Instructions</h4>
+              <div className="rounded-lg border bg-card p-4 text-sm leading-relaxed whitespace-pre-wrap">
+                {selectedHw?.description || "No description provided."}
+              </div>
+            </div>
+
+            {selectedHw?.attachments && selectedHw.attachments.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-2">Attachments ({selectedHw.attachments.length})</h4>
+                <div className="grid gap-2">
+                  {selectedHw.attachments.map((url, i) => (
+                    <a 
+                      key={i} 
+                      href={url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30 hover:bg-accent transition-colors text-sm font-medium"
+                    >
+                      <ExternalLink className="h-4 w-4 text-primary" />
+                      {url.split('/').pop() || "View Attachment"}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedHw?.status !== 'assigned' && (
+               <div className="space-y-4">
+                  <div className="pt-4 border-t">
+                     <h4 className="text-sm font-semibold uppercase tracking-wider text-primary mb-2">Your Submission</h4>
+                     <div className="rounded-lg border bg-blue-50/20 p-4 text-sm whitespace-pre-wrap">
+                        {selectedHw?.submissionText || "No submission text provided."}
+                     </div>
+                     <p className="text-xs text-muted-foreground mt-2">
+                        Submitted on: {selectedHw?.submittedAt ? new Date(selectedHw.submittedAt).toLocaleString() : 'N/A'}
+                     </p>
+                  </div>
+
+                  {selectedHw?.feedback && (
+                    <div className="rounded-xl bg-emerald-50/30 border border-emerald-100 p-5">
+                       <h4 className="text-sm font-bold text-emerald-800 flex items-center gap-2 mb-2">
+                          <CheckCircle className="h-4 w-4" />
+                          Teacher Feedback
+                       </h4>
+                       <p className="text-sm text-emerald-900 italic leading-relaxed">
+                          "{selectedHw.feedback}"
+                       </p>
+                    </div>
+                  )}
+               </div>
+            )}
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setDetailsOpen(false)}>Close</Button>
+            {selectedHw?.status === 'assigned' && (
+              <Button onClick={() => {
+                setDetailsOpen(false)
+                handleOpenSubmit(selectedHw)
+              }}>
+                <Send className="mr-2 h-4 w-4" />
+                Submit My Work
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

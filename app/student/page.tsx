@@ -9,6 +9,7 @@ import { api } from "@/lib/api"
 import type { Student, Lesson, Payment, Homework } from "@/lib/types"
 import { format } from "date-fns"
 import { Calendar, Clock, Video, BookOpen, AlertCircle } from "lucide-react"
+import { MotivationWidget } from "@/components/motivation-widget"
 
 export default function StudentDashboard() {
   const [student, setStudent] = useState<Student | null>(null)
@@ -77,6 +78,12 @@ export default function StudentDashboard() {
       <Header title="Student Portal" subtitle={`Welcome back, ${student.fullName.split(' ')[0]}!`} />
       <main className="p-6 space-y-6">
         
+        {student.preferences?.showMotivation && (
+            <div className="max-w-2xl">
+                <MotivationWidget />
+            </div>
+        )}
+
         {/* Next Lesson Card */}
         <Card className="border-l-4 border-l-indigo-600">
             <CardHeader>

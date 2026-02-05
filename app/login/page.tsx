@@ -50,15 +50,17 @@ export default function LoginPage() {
     setIsLoading(true)
     
     try {
-        const students = await api.getStudents()
-        // Check if student exists with phone/email and password
-        // Note: In a real app, use a proper auth endpoint. Here we filter locally for demo.
-        const student = students.find(s => 
-            (s.contactPhone === studentPhone || s.contactEmail === studentPhone) && 
-            s.password === studentPassword
-        )
+        // Secure server-side verification
+        const verifyResponse = await fetch("/api/auth/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contact: studentPhone, password: studentPassword })
+        })
 
-        if (student) {
+        const verifyResult = await verifyResponse.json()
+
+        if (verifyResult.success && verifyResult.student) {
+            const student = verifyResult.student
             const userData = { ...student, role: "student" }
             
             // Create server-side session
@@ -69,11 +71,10 @@ export default function LoginPage() {
             })
 
             localStorage.setItem("currentUser", JSON.stringify(userData))
-            // Keep student-specific key for backward compatibility if needed elsewhere
             localStorage.setItem("currentStudent", JSON.stringify(student))
             router.push("/student")
         } else {
-            alert("Invalid credentials")
+            alert(verifyResult.error || "Invalid credentials")
         }
     } catch (error) {
         console.error("Login failed", error)

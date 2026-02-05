@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge"
 import { X } from "lucide-react"
 import type { Student } from "@/lib/types"
+import { TIMEZONES } from "@/lib/constants"
 
 interface StudentFormProps {
   open: boolean
@@ -19,17 +20,6 @@ interface StudentFormProps {
   student?: Student | null
   onSave: (student: Omit<Student, "id" | "createdAt" | "updatedAt"> | Partial<Student>) => void
 }
-
-const timezones = [
-  "America/New_York",
-  "America/Chicago",
-  "America/Denver",
-  "America/Los_Angeles",
-  "Europe/London",
-  "Europe/Paris",
-  "Asia/Tokyo",
-  "Australia/Sydney",
-]
 
 const commonSubjects = [
   "Python",
@@ -169,9 +159,9 @@ export function StudentForm({ open, onOpenChange, student, onSave }: StudentForm
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {timezones.map((tz) => (
-                      <SelectItem key={tz} value={tz}>
-                        {tz}
+                    {TIMEZONES.map((tz) => (
+                      <SelectItem key={tz.value} value={tz.value}>
+                        {tz.label}
                       </SelectItem>
                     ))}
                   </SelectContent>

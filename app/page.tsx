@@ -9,7 +9,9 @@ import { AlertsPanel } from "@/components/dashboard/alerts-panel"
 import { WeekOverview } from "@/components/dashboard/week-overview"
 import { store } from "@/lib/store"
 import { api } from "@/lib/api"
-import type { Student, Lesson, Payment, Package, RescheduleRequest } from "@/lib/types"
+import { MotivationWidget } from "@/components/motivation-widget"
+import { useConfetti } from "@/components/confetti-provider"
+import type { Student, Lesson, Payment, Package, RescheduleRequest, User } from "@/lib/types"
 
 export default function DashboardPage() {
   const [students, setStudents] = useState<Student[]>([])
@@ -19,6 +21,8 @@ export default function DashboardPage() {
   const [rescheduleRequests, setRescheduleRequests] = useState<RescheduleRequest[]>([])
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(null)
+  const { fire } = useConfetti()
 
   useEffect(() => {
     setMounted(true)
@@ -39,6 +43,7 @@ export default function DashboardPage() {
         setPayments(p)
         setPackages(pkg)
         setRescheduleRequests(req.filter(r => r.status === 'pending'))
+        setUser(store.getCurrentUser())
     } catch (error) {
         console.error("Dashboard load failed", error)
     } finally {
@@ -92,6 +97,9 @@ export default function DashboardPage() {
   const handleCompleteLesson = async (id: string) => {
     try {
         await api.updateLesson(id, { status: "completed" })
+        if (user?.preferences?.confettiEnabled) {
+          fire()
+        }
         loadData()
     } catch (e) {
         console.error(e)
@@ -114,6 +122,11 @@ export default function DashboardPage() {
         <Header title="Dashboard" subtitle={`Welcome back! Here's your overview for today.`} />
         <main className="p-6">
           <div className="space-y-6">
+            {user?.preferences?.showMotivation && (
+              <div className="max-w-2xl">
+                <MotivationWidget />
+              </div>
+            )}
             <StatsCards
               activeStudents={activeStudents.length}
               todayLessons={todaysLessons.length}

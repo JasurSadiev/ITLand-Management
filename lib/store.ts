@@ -201,6 +201,7 @@ const initialHomework: Homework[] = [
     title: "Complete Snake Game",
     description: "Finish the snake game project we started in class",
     dueDate: formatDate(new Date(today.getTime() + 86400000 * 3)),
+    timezone: "UTC",
     status: "assigned",
     attachments: [],
     createdAt: "2024-03-01",
@@ -249,7 +250,16 @@ function setStorage<T>(key: string, value: T): void {
 // Store functions
 export const store = {
   // Students
-  getStudents: (): Student[] => getStorage(STORAGE_KEYS.students, initialStudents),
+  getStudents: (): Student[] => getStorage(STORAGE_KEYS.students, initialStudents).map(s => ({
+    ...s,
+    preferences: s.preferences || {
+      theme: "indigo",
+      avatarEmoji: "👨‍💻",
+      greetingStyle: "default",
+      confettiEnabled: true,
+      showMotivation: true
+    }
+  })),
   setStudents: (students: Student[]) => setStorage(STORAGE_KEYS.students, students),
   addStudent: (student: Omit<Student, "id" | "createdAt" | "updatedAt">): Student => {
     const students = store.getStudents()

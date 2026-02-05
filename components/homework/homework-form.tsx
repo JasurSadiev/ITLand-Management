@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { fromZonedTime } from "date-fns-tz"
 import type { Homework, Student, Lesson } from "@/lib/types"
+import { TIMEZONES } from "@/lib/constants"
 
 interface HomeworkFormProps {
   open: boolean
@@ -214,9 +215,11 @@ export function HomeworkForm({ open, onOpenChange, homework, students, lessons, 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Europe/London">London (UTC/BST)</SelectItem>
-                <SelectItem value="UTC">UTC</SelectItem>
-                {/* Could add more or use TIMEZONES list, but user emphasized London as default */}
+                {TIMEZONES.map((tz) => (
+                  <SelectItem key={tz.value} value={tz.value}>
+                    {tz.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

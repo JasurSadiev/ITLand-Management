@@ -4,6 +4,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { LayoutDashboard, Users, Calendar, CreditCard, BookOpen, BarChart3, Settings, FolderOpen, LogOut } from "lucide-react"
+import { store } from "@/lib/store"
+import { useCustomization } from "@/lib/context"
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -19,6 +21,7 @@ const bottomNav = [{ name: "Settings", href: "/settings", icon: Settings }]
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { preferences } = useCustomization()
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-card">
@@ -75,6 +78,17 @@ export function Sidebar() {
               </Link>
             )
           })}
+          <div className="flex items-center gap-3 px-3 py-4 mt-2 border-t border-border">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xl">
+               {preferences?.avatarEmoji || "👨‍🏫"}
+            </div>
+            <div className="flex-1 overflow-hidden">
+                <p className="text-sm font-medium truncate">
+                    {typeof window !== "undefined" ? store.getCurrentUser().name : "Teacher"}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">Teacher Account</p>
+            </div>
+          </div>
           <button
             onClick={async () => {
               // clear server-side session

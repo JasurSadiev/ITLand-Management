@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { KeyRound, ShieldCheck, AlertCircle } from "lucide-react"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
+import { PersonalizationCard } from "@/components/personalization-card"
 import type { Student } from "@/lib/types"
 
 export default function StudentSettingsPage() {
@@ -72,6 +73,22 @@ export default function StudentSettingsPage() {
       toast.error("Failed to update password. Please try again.")
     } finally {
       setIsUpdating(false)
+    }
+  }
+
+  const handleUpdatePreferences = async (updates: Partial<Student["preferences"]>) => {
+    if (!student) return
+    const updatedPreferences = { ...student.preferences, ...updates }
+    const updatedStudent = { ...student, preferences: updatedPreferences }
+    
+    setStudent(updatedStudent)
+    localStorage.setItem("currentStudent", JSON.stringify(updatedStudent))
+    
+    try {
+      await api.updateStudent(student.id, { preferences: updatedPreferences as any })
+      toast.success("Preferences updated")
+    } catch (error) {
+      console.error("Failed to sync preferences:", error)
     }
   }
 
@@ -151,6 +168,15 @@ export default function StudentSettingsPage() {
             </CardFooter>
           </form>
         </Card>
+
+        {student && (
+          <div className="mt-8">
+              <PersonalizationCard 
+                  preferences={student.preferences || {}} 
+                  onChange={(updates) => handleUpdatePreferences(updates as any)} 
+              />
+          </div>
+        )}
       </main>
     </div>
   )
