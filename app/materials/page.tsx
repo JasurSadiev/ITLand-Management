@@ -14,11 +14,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Plus, Link, FileText, Search, ExternalLink, Trash2 } from "lucide-react"
 import { store } from "@/lib/store"
 import type { Material } from "@/lib/types"
+import { useCustomization } from "@/lib/context"
+import { cn } from "@/lib/utils"
 
 export default function MaterialsPage() {
   const [materials, setMaterials] = useState<Material[]>([])
   const [mounted, setMounted] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
+  const { sidebarCollapsed } = useCustomization()
   const [search, setSearch] = useState("")
 
   const [formData, setFormData] = useState<Partial<Material>>({
@@ -62,11 +65,14 @@ export default function MaterialsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background transition-all duration-300 ease-in-out">
       <Sidebar />
-      <div className="ml-64">
+      <div className={cn(
+        "transition-all duration-300 ease-in-out",
+        sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
+      )}>
         <Header title="Learning Materials" subtitle={`${materials.length} materials in library`} />
-        <main className="p-6">
+        <main className="p-4 lg:p-6">
           <div className="mb-6 flex items-center justify-between">
             <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

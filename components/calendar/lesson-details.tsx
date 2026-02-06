@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { User, BookOpen, DollarSign, Edit, Copy, CheckCircle, XCircle, Calendar, CalendarClock, Trash, RefreshCw } from "lucide-react"
+import { toZonedTime, fromZonedTime, format as formatTz } from "date-fns-tz"
 import { api } from "@/lib/api"
 import type { Lesson, Student } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -22,6 +23,7 @@ interface LessonDetailsProps {
   onAcceptReschedule?: (requestId: string, slot: { date: string, time: string }) => void
   onDelete: (lesson: Lesson) => void
   isPaidComputed?: boolean
+  timezone?: string
 }
 
 export function LessonDetails({
@@ -37,8 +39,17 @@ export function LessonDetails({
   onAcceptReschedule,
   onDelete,
   isPaidComputed,
+  timezone = "UTC",
 }: LessonDetailsProps) {
   if (!lesson) return null
+
+  // Adjusted time for display
+  const lessonTz = lesson.timezone || "UTC"
+  const lessonDateTimeUTC = fromZonedTime(`${lesson.date} ${lesson.time}`, lessonTz)
+  const zonedDate = toZonedTime(lessonDateTimeUTC, timezone)
+  
+  const displayDate = formatTz(zonedDate, "EEEE, MMMM do, yyyy", { timeZone: timezone })
+  const displayTime = formatTz(zonedDate, "HH:mm", { timeZone: timezone })
 
   const lessonStudents = lesson.studentIds.map((id) => students.find((s) => s.id === id)).filter(Boolean) as Student[]
 
@@ -164,14 +175,10 @@ export function LessonDetails({
                 </div>
                 <div>
                   <p className="font-medium">
-                    {new Date(lesson.date).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    {displayDate}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {lesson.time} - {lesson.duration} minutes
+                    {displayTime} - {lesson.duration} minutes
                   </p>
                 </div>
               </div>

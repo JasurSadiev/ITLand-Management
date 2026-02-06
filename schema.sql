@@ -44,6 +44,7 @@ create table if not exists public.lessons (
     meeting_link text,
     audit_info jsonb, -- Stores {rescheduled_from: string, penalty_charged: boolean, reason: string}
     cancellation_reason text,
+    whatsapp_sent boolean default false,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

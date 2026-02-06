@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, DollarSign } from "lucide-react"
 import { toZonedTime } from "date-fns-tz"
 import { useMemo, useState, useEffect } from "react"
-import { format } from "date-fns"
-import type { Lesson, Student } from "@/lib/types"
+import { format, getDay, parse } from "date-fns"
+import type { Lesson, Student, User } from "@/lib/types"
+import { store } from "@/lib/store"
 
 interface CalendarViewProps {
   lessons: Lesson[]
@@ -53,11 +54,48 @@ export function CalendarView({
   onDateChange,
   timezone = "UTC",
 }: CalendarViewProps) {
+  const [teacher, setTeacher] = useState<User | null>(null)
+
+  useEffect(() => {
+    setTeacher(store.getCurrentUser())
+  }, [])
+
+  const isTimeBlocked = (date: Date, timeStr: string) => {
+    if (!teacher) return false
+    
+    const dayOfWeek = getDay(date)
+    const dateStr = format(date, "yyyy-MM-dd")
+    
+    // Check blackout slots
+    const isBlackout = teacher.blackoutSlots?.some(bs => 
+      bs.date === dateStr && timeStr >= bs.startTime && timeStr < bs.endTime
+    )
+    if (isBlackout) return true
+
+    // Check working hours
+    const dayWorkingHours = teacher.workingHours?.filter(wh => wh.dayOfWeek === dayOfWeek && wh.active) || []
+    if (dayWorkingHours.length === 0) return true // No working hours = blocked
+
+    const isWorking = dayWorkingHours.some(wh => 
+      timeStr >= wh.startTime && timeStr < wh.endTime
+    )
+    
+    return !isWorking
+  }
+
   const getStudentName = (studentIds: string[]) => {
     return studentIds.map((id) => students.find((s) => s.id === id)?.fullName || "Unknown").join(", ")
   }
 
-  // Calculate which lessons are paid based on student's lessonBalance
+  const [lessonFormOpen, setLessonFormOpen] = useState(false)
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null)
+
+  const handleLessonClick = (lesson: Lesson) => {
+    setEditingLesson(lesson)
+    setLessonFormOpen(true)
+  }
+
+  // Find the LessonForm in the parent or usage - wait, let me check where it is rendered.
   // Simple logic: first N lessons (chronologically) are paid where N = lessonBalance
   const lessonPaymentStatus = useMemo(() => {
     const statusMap = new Map<string, "paid" | "unpaid">()
@@ -375,8 +413,18 @@ export function CalendarView({
                     {timeSlots.map((time) => {
                         const hourStr = time.split(":")[0]
                         const lessonsAtTime = dayLessons.filter((l) => l.time.startsWith(`${hourStr}:`))
+                        const isBlocked = isTimeBlocked(day, time)
+                        
                         return (
-                        <div key={time} className="relative h-16 border-b border-border p-0.5">
+                        <div key={time} className={cn(
+                            "relative h-16 border-b border-border p-0.5",
+                            isBlocked && "bg-muted/30"
+                        )}>
+                            {isBlocked && !lessonsAtTime.length && (
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+                                    <span className="text-[8px] font-bold uppercase rotate-45">Blocked</span>
+                                </div>
+                            )}
                             {lessonsAtTime.map((lesson) => (
                             <button
                                 key={lesson.id}

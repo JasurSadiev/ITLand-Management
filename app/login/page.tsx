@@ -128,7 +128,7 @@ export default function LoginPage() {
                     />
                   </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="pt-6">
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Logging in..." : "Login"}
                   </Button>
@@ -167,7 +167,7 @@ export default function LoginPage() {
                     />
                   </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="pt-6">
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Logging in..." : "Login"}
                   </Button>

@@ -11,10 +11,13 @@ import { Button } from "@/components/ui/button"
 import { Plus, DollarSign, Globe } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { api } from "@/lib/api"
-import type { Lesson, Student, Package, Payment } from "@/lib/types"
+import { store } from "@/lib/store"
+import type { Lesson, Student, Package, Payment, User } from "@/lib/types"
 import { toZonedTime, fromZonedTime, format } from "date-fns-tz"
 import { RescheduleDialog } from "@/components/calendar/reschedule-dialog"
 import { DeleteAlertDialog } from "@/components/calendar/delete-alert-dialog"
+import { useCustomization } from "@/lib/context"
+import { cn } from "@/lib/utils"
 
 // Helper function to generate recurring lessons
 function generateRecurringLessons(
@@ -153,9 +156,12 @@ export default function CalendarPage() {
   
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [lessonToDelete, setLessonToDelete] = useState<Lesson | null>(null)
+  const [teacher, setTeacher] = useState<User | null>(null)
+  const { sidebarCollapsed } = useCustomization()
 
   useEffect(() => {
     setMounted(true)
+    setTeacher(store.getCurrentUser())
     loadData()
   }, [])
 
@@ -533,11 +539,14 @@ export default function CalendarPage() {
   const upcomingCount = lessons.filter((l) => l.status === "upcoming").length
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background transition-all duration-300 ease-in-out">
       <Sidebar />
-      <div className="ml-64">
+      <div className={cn(
+        "transition-all duration-300 ease-in-out",
+        sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
+      )}>
         <Header title="Calendar" subtitle={`${upcomingCount} upcoming lessons`} />
-        <main className="p-6">
+        <main className="p-4 lg:p-6">
           <div className="mb-6 flex items-center justify-between">
             <p className="text-muted-foreground">Schedule and manage your lessons with ease.</p>
             <div className="flex gap-2 items-center">
@@ -588,6 +597,7 @@ export default function CalendarPage() {
             onOpenChange={setFormOpen}
             lesson={selectedLesson}
             students={students}
+            teacher={teacher}
             onSave={handleSaveLesson}
             onDelete={handleDeleteLesson}
             defaultDate={selectedDate.toISOString().split("T")[0]}
@@ -606,6 +616,7 @@ export default function CalendarPage() {
             onAcceptReschedule={handleAcceptReschedule}
             onDelete={handleDeleteLesson}
             isPaidComputed={selectedLessonPaid}
+            timezone={viewTimezone}
           />
 
           <PaymentForm

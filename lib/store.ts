@@ -380,7 +380,20 @@ export const store = {
   },
 
   // User
-  getCurrentUser: (): User => getStorage(STORAGE_KEYS.currentUser, defaultUser),
+  getCurrentUser: (): User => {
+    const user = getStorage(STORAGE_KEYS.currentUser, defaultUser)
+    return {
+      ...user,
+      workingHours: user.workingHours || [
+        { dayOfWeek: 1, startTime: "09:00", endTime: "17:00", active: true },
+        { dayOfWeek: 2, startTime: "09:00", endTime: "17:00", active: true },
+        { dayOfWeek: 3, startTime: "09:00", endTime: "17:00", active: true },
+        { dayOfWeek: 4, startTime: "09:00", endTime: "17:00", active: true },
+        { dayOfWeek: 5, startTime: "09:00", endTime: "17:00", active: true },
+      ],
+      blackoutSlots: user.blackoutSlots || []
+    }
+  },
   setCurrentUser: (user: User) => setStorage(STORAGE_KEYS.currentUser, user),
 
   // Reset all data

@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 import type { Lesson, Student } from "@/lib/types"
 import { format, differenceInHours } from "date-fns"
+import { toZonedTime, fromZonedTime, format as formatTz } from "date-fns-tz"
 import { cn } from "@/lib/utils"
 
 interface StudentLessonDetailsProps {
@@ -27,6 +28,7 @@ interface StudentLessonDetailsProps {
   lesson: Lesson | null
   onCancel: (lesson: Lesson, late: boolean, reason: string) => void
   onReschedule: (lesson: Lesson, late: boolean) => void
+  timezone?: string
 }
 
 const CANCELLATION_REASONS = [
@@ -44,6 +46,7 @@ export function StudentLessonDetails({
   lesson,
   onCancel,
   onReschedule,
+  timezone = "UTC",
 }: StudentLessonDetailsProps) {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [cancelReason, setCancelReason] = useState("")
@@ -51,9 +54,16 @@ export function StudentLessonDetails({
 
   if (!lesson) return null
 
-  const lessonDateTime = new Date(`${lesson.date}T${lesson.time}`)
-  const hoursUntilLesson = differenceInHours(lessonDateTime, new Date())
+  // Calculate "late" based on absolute time
+  const lessonTz = lesson.timezone || "UTC"
+  const lessonDateTimeUTC = fromZonedTime(`${lesson.date} ${lesson.time}`, lessonTz)
+  const hoursUntilLesson = differenceInHours(lessonDateTimeUTC, new Date())
   const isLate = hoursUntilLesson < 4 && hoursUntilLesson >= 0
+
+  // Adjusted time for display
+  const zonedDate = toZonedTime(lessonDateTimeUTC, timezone)
+  const displayDate = formatTz(zonedDate, "EEEE, MMMM do, yyyy", { timeZone: timezone })
+  const displayTime = formatTz(zonedDate, "HH:mm", { timeZone: timezone })
 
   const handleConfirmCancel = () => {
     const finalReason = cancelReason === "Other" ? otherCancelReason : cancelReason
@@ -90,10 +100,10 @@ export function StudentLessonDetails({
             <div>
               <p className="text-sm font-medium">Date & Time</p>
               <p className="text-sm text-muted-foreground">
-                {format(new Date(lesson.date), "EEEE, MMMM do, yyyy")}
+                {displayDate}
               </p>
               <p className="text-sm text-muted-foreground">
-                {lesson.time} ({lesson.duration} min)
+                {displayTime} ({lesson.duration} min)
               </p>
             </div>
           </div>

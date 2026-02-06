@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button"
 import { Plus, Package } from "lucide-react"
 import { api } from "@/lib/api"
 import type { Student, Lesson, Payment, Package as PackageType } from "@/lib/types"
+import { useCustomization } from "@/lib/context"
+import { cn } from "@/lib/utils"
 
 export default function PaymentsPage() {
   const [students, setStudents] = useState<Student[]>([])
@@ -24,6 +26,7 @@ export default function PaymentsPage() {
 
   const [paymentFormOpen, setPaymentFormOpen] = useState(false)
   const [packageFormOpen, setPackageFormOpen] = useState(false)
+  const { sidebarCollapsed } = useCustomization()
 
   useEffect(() => {
     setMounted(true)
@@ -132,11 +135,14 @@ export default function PaymentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background transition-all duration-300 ease-in-out">
       <Sidebar />
-      <div className="ml-64">
+      <div className={cn(
+        "transition-all duration-300 ease-in-out",
+        sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
+      )}>
         <Header title="Payments & Finance" subtitle="Track income, payments, and packages" />
-        <main className="p-6">
+        <main className="p-4 lg:p-6">
           <div className="mb-6 flex items-center justify-between">
             <p className="text-muted-foreground">Manage your finances and track student payments.</p>
             <div className="flex gap-2">

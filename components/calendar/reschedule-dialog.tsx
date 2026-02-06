@@ -16,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TIMEZONES } from "@/lib/constants"
 import type { Lesson, Student } from "@/lib/types"
+import { AvailabilityPicker } from "./availability-picker"
 
 interface RescheduleDialogProps {
   open: boolean
@@ -67,28 +68,16 @@ export function RescheduleDialog({ open, onOpenChange, lesson, students, onConfi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>Reschedule Lesson</DialogTitle>
           <DialogDescription>
             Choose a new date and time for this lesson.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <div className="flex flex-col gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="date" className="text-right">
-              Date
-            </Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="col-span-3"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="timezone" className="text-right">
+            <Label htmlFor="timezone" className="text-right whitespace-nowrap">
               Timezone
             </Label>
             <div className="col-span-3">
@@ -106,29 +95,21 @@ export function RescheduleDialog({ open, onOpenChange, lesson, students, onConfi
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="time" className="text-right">
-              Time
-            </Label>
-            <div className="col-span-3">
-              <Select
-                value={time?.split(":")[0]}
-                onValueChange={(hour) => setTime(`${hour}:00`)}
-              >
-                <SelectTrigger id="time">
-                  <SelectValue placeholder="Hour" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 24 }, (_, i) => {
-                    const hour = i.toString().padStart(2, "0")
-                    const label = i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`
-                    return <SelectItem key={hour} value={hour}>{label}</SelectItem>
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
+
+          <div className="border rounded-lg p-2 bg-muted/20">
+             <AvailabilityPicker 
+                teacherId="teacher"
+                duration={lesson.duration}
+                selectedDate={date}
+                selectedTime={time}
+                timezone={timezone}
+                onSelect={(d, t) => {
+                    setDate(d)
+                    setTime(t)
+                }}
+             />
           </div>
-          
+
           {isRecurring && (
             <div className="grid grid-cols-4 gap-4 mt-2">
               <Label className="text-right pt-2">Apply to</Label>

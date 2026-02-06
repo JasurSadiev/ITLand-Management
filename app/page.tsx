@@ -12,6 +12,8 @@ import { api } from "@/lib/api"
 import { MotivationWidget } from "@/components/motivation-widget"
 import { useConfetti } from "@/components/confetti-provider"
 import type { Student, Lesson, Payment, Package, RescheduleRequest, User } from "@/lib/types"
+import { useCustomization } from "@/lib/context"
+import { cn } from "@/lib/utils"
 
 export default function DashboardPage() {
   const [students, setStudents] = useState<Student[]>([])
@@ -23,6 +25,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<User | null>(null)
   const { fire } = useConfetti()
+  const { sidebarCollapsed } = useCustomization()
 
   useEffect(() => {
     setMounted(true)
@@ -116,9 +119,12 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background transition-all duration-300 ease-in-out">
       <Sidebar />
-      <div className="ml-64">
+      <div className={cn(
+        "transition-all duration-300 ease-in-out",
+        sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
+      )}>
         <Header title="Dashboard" subtitle={`Welcome back! Here's your overview for today.`} />
         <main className="p-6">
           <div className="space-y-6">

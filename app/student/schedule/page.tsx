@@ -198,6 +198,7 @@ export default function StudentSchedulePage() {
             lesson={selectedLesson}
             onCancel={handleCancel}
             onReschedule={handleRescheduleClick}
+            timezone={viewTimezone}
         />
 
         <StudentRescheduleRequest 

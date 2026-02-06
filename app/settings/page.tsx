@@ -14,10 +14,13 @@ import { RefreshCw, Save, Shield } from "lucide-react"
 import { store } from "@/lib/store"
 import { PersonalizationCard } from "@/components/personalization-card"
 import type { User } from "@/lib/types"
+import { useCustomization } from "@/lib/context"
+import { cn } from "@/lib/utils"
 
 export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(null)
   const [mounted, setMounted] = useState(false)
+  const { sidebarCollapsed } = useCustomization()
 
   useEffect(() => {
     setMounted(true)
@@ -59,11 +62,14 @@ export default function SettingsPage() {
     .toUpperCase()
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background transition-all duration-300 ease-in-out">
       <Sidebar />
-      <div className="ml-64">
+      <div className={cn(
+        "transition-all duration-300 ease-in-out",
+        sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
+      )}>
         <Header title="Settings" subtitle="Manage your account and preferences" />
-        <main className="p-6">
+        <main className="p-4 lg:p-6">
           <div className="max-w-2xl space-y-6">
             {/* Profile */}
             <Card>

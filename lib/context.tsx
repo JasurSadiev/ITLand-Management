@@ -13,6 +13,10 @@ interface CustomizationContextType {
   preferences: any
   updatePreferences: (newPrefs: any) => Promise<void>
   refreshPreferences: () => void
+  sidebarCollapsed: boolean
+  setSidebarCollapsed: (collapsed: boolean) => void
+  mobileMenuOpen: boolean
+  setMobileMenuOpen: (open: boolean) => void
 }
 
 const CustomizationContext = createContext<CustomizationContextType | undefined>(undefined)
@@ -20,10 +24,18 @@ const CustomizationContext = createContext<CustomizationContextType | undefined>
 export function CustomizationProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState("indigo")
   const [baseMode, setBaseMode] = useState<"light" | "dark" | "midnight" | "sepia" | "nord">("light")
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [preferences, setPreferences] = useState<any>({})
 
   const loadPreferences = useCallback(() => {
     if (typeof window === "undefined") return
+
+    // Load sidebar state
+    const storedSidebar = localStorage.getItem("sidebarCollapsed")
+    if (storedSidebar !== null) {
+      setSidebarCollapsed(storedSidebar === "true")
+    }
 
     const storedUser = localStorage.getItem("currentUser") || localStorage.getItem("currentStudent")
     if (storedUser) {
@@ -93,7 +105,14 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
         setBaseMode: (m) => updatePreferences({ baseMode: m }),
         preferences, 
         updatePreferences,
-        refreshPreferences: loadPreferences
+        refreshPreferences: loadPreferences,
+        sidebarCollapsed,
+        setSidebarCollapsed: (collapsed: boolean) => {
+          setSidebarCollapsed(collapsed)
+          localStorage.setItem("sidebarCollapsed", String(collapsed))
+        },
+        mobileMenuOpen,
+        setMobileMenuOpen
     }}>
       {children}
     </CustomizationContext.Provider>

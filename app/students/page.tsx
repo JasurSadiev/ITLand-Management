@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { api } from "@/lib/api"
 import type { Student, Lesson, Payment, Homework, Package } from "@/lib/types"
+import { useCustomization } from "@/lib/context"
+import { cn } from "@/lib/utils"
 
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([])
@@ -23,6 +25,7 @@ export default function StudentsPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
+  const { sidebarCollapsed } = useCustomization()
 
   useEffect(() => {
     setMounted(true)
@@ -99,9 +102,12 @@ export default function StudentsPage() {
   const activeStudents = students.filter((s) => s.status === "active").length
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background transition-all duration-300 ease-in-out">
       <Sidebar />
-      <div className="ml-64">
+      <div className={cn(
+        "transition-all duration-300 ease-in-out",
+        sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
+      )}>
         <Header title="Students" subtitle={`${activeStudents} active students`} />
         <main className="p-6">
           <div className="mb-6 flex items-center justify-between">

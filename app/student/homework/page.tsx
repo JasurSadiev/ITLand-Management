@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { Header } from "@/components/header"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, CheckCircle, AlertTriangle, ExternalLink, Calendar as CalendarIcon, Send } from "lucide-react"
 import { api } from "@/lib/api"
@@ -139,47 +140,69 @@ export default function StudentHomeworkPage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-6 md:grid-cols-2">
                 {assigned.map(hw => {
                   const overdue = isOverdue(hw)
                   return (
-                    <Card key={hw.id} className={overdue ? "border-red-200 bg-red-50/30" : ""}>
-                      <CardHeader className="pb-3">
+                    <Card key={hw.id} className={cn(
+                        "group flex flex-col h-full border-t-4 transition-all duration-300 hover:shadow-xl",
+                        overdue ? "border-t-destructive bg-destructive/5" : "border-t-indigo-500 hover:border-t-indigo-600"
+                    )}>
+                      <CardHeader className="pb-2">
                         <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <CardTitle className="text-lg">{hw.title}</CardTitle>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <CalendarIcon className="h-3.5 w-3.5" />
-                              <span>Due: {formatDeadline(hw)}</span>
-                              {overdue && <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">Overdue</Badge>}
+                          <div className="space-y-1.5 font-medium">
+                            <CardTitle className="text-xl font-bold tracking-tight text-indigo-900 dark:text-indigo-100 group-hover:text-indigo-600 transition-colors">
+                                {hw.title}
+                            </CardTitle>
+                            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground font-medium">
+                              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-muted/50 border">
+                                <CalendarIcon className="h-3.5 w-3.5 text-indigo-500" />
+                                <span>Due: {formatDeadline(hw)}</span>
+                              </div>
+                              {overdue && (
+                                <Badge variant="destructive" className="h-5 px-2 animate-pulse">
+                                  <AlertTriangle className="mr-1 h-3 w-3" />
+                                  Overdue
+                                </Badge>
+                              )}
                             </div>
                           </div>
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700">Assigned</Badge>
+                          <Badge variant="secondary" className="bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-400">
+                            Assigned
+                          </Badge>
                         </div>
                       </CardHeader>
-                      <CardContent className="space-y-4">
-                        {hw.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-2">{hw.description}</p>
+                      <CardContent className="flex-grow pt-2">
+                        {hw.description ? (
+                          <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+                            {hw.description}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground italic">No instructions provided.</p>
                         )}
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
-                            className="w-full gap-2 bg-transparent" 
-                            size="sm" 
-                            onClick={() => {
-                              setSelectedHw(hw)
-                              setDetailsOpen(true)
-                            }}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            View Details
-                          </Button>
-                          <Button className="w-full gap-2" size="sm" onClick={() => handleOpenSubmit(hw)}>
-                            <Send className="h-4 w-4" />
-                            Submit Work
-                          </Button>
-                        </div>
                       </CardContent>
+                      <CardFooter className="pt-4 pb-4 border-t bg-muted/5 flex gap-3">
+                        <Button 
+                          variant="ghost" 
+                          className="flex-1 gap-2 hover:bg-white dark:hover:bg-slate-800 border" 
+                          size="sm" 
+                          onClick={() => {
+                            setSelectedHw(hw)
+                            setDetailsOpen(true)
+                          }}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          View Details
+                        </Button>
+                        <Button 
+                          className="flex-1 gap-2 bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-100 dark:shadow-none" 
+                          size="sm" 
+                          onClick={() => handleOpenSubmit(hw)}
+                        >
+                          <Send className="h-4 w-4" />
+                          Submit Work
+                        </Button>
+                      </CardFooter>
                     </Card>
                   )
                 })}
@@ -191,42 +214,56 @@ export default function StudentHomeworkPage() {
             {completed.length === 0 ? (
               <p className="text-center py-12 text-muted-foreground">No completed homework yet.</p>
             ) : (
-              <div className="space-y-3">
+              <div className="grid gap-4">
                 {completed.map(hw => (
-                  <Card key={hw.id} className="overflow-hidden">
-                    <div className="flex items-center justify-between p-4 bg-muted/30">
+                  <Card key={hw.id} className="overflow-hidden border-l-4 border-l-emerald-500 hover:shadow-md transition-shadow">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 gap-4">
                       <div className="flex items-center gap-4">
-                        <div className={`h-10 w-10 flex items-center justify-center rounded-full ${hw.status === 'checked' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                          {hw.status === 'checked' ? <CheckCircle className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
+                        <div className={cn(
+                            "h-12 w-12 flex items-center justify-center rounded-xl transition-colors shadow-inner",
+                            hw.status === 'checked' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                        )}>
+                          {hw.status === 'checked' ? <CheckCircle className="h-6 w-6" /> : <Clock className="h-6 w-6" />}
                         </div>
                         <div>
-                          <p className="font-medium">{hw.title}</p>
-                          <p className="text-sm text-muted-foreground">Submitted on {hw.submittedAt ? new Date(hw.submittedAt).toLocaleDateString() : 'N/A'}</p>
+                          <p className="text-lg font-bold text-indigo-900 dark:text-indigo-100">{hw.title}</p>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
+                             <CalendarIcon className="h-3.5 w-3.5" />
+                             <span>Submitted on {hw.submittedAt ? new Date(hw.submittedAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}</span>
+                          </div>
                         </div>
                       </div>
-                      <Badge className={hw.status === 'checked' ? 'bg-emerald-100 text-emerald-700 border-none' : 'bg-amber-100 text-amber-700 border-none'}>
-                        {hw.status === 'checked' ? 'Checked' : 'Submitted'}
-                      </Badge>
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge className={cn(
+                            "px-3 py-0.5 rounded-full border-none shadow-sm capitalize",
+                            hw.status === 'checked' ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
+                        )}>
+                          {hw.status}
+                        </Badge>
+                        <Button 
+                            variant="link" 
+                            size="sm" 
+                            className="text-indigo-600 dark:text-indigo-400 p-0 h-auto font-semibold hover:no-underline hover:text-indigo-800"
+                            onClick={() => {
+                              setSelectedHw(hw)
+                              setDetailsOpen(true)
+                            }}
+                        >
+                            View Submission
+                        </Button>
+                      </div>
                     </div>
                     {hw.feedback && (
-                      <div className="p-4 border-t bg-emerald-50/20">
-                        <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-1">Teacher Feedback</p>
-                        <p className="text-sm italic">{hw.feedback}</p>
+                      <div className="px-5 py-4 bg-emerald-50/30 dark:bg-emerald-900/10 border-t border-emerald-100 dark:border-emerald-800">
+                        <div className="flex items-center gap-2 mb-2">
+                           <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                           <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Teacher Feedback</p>
+                        </div>
+                        <p className="text-sm italic text-emerald-900 dark:text-emerald-300 ml-3.5 border-l-2 border-emerald-200 dark:border-emerald-700 pl-3 leading-relaxed">
+                            {hw.feedback}
+                        </p>
                       </div>
                     )}
-                    <div className="p-4 border-t flex justify-end">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-primary hover:text-primary/80"
-                        onClick={() => {
-                          setSelectedHw(hw)
-                          setDetailsOpen(true)
-                        }}
-                      >
-                        View My Submission
-                      </Button>
-                    </div>
                   </Card>
                 ))}
               </div>

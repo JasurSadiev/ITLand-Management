@@ -57,6 +57,7 @@ export interface Lesson {
     actionTakenAt?: string
   }
   cancellationReason?: string
+  whatsappSent?: boolean // Tracks if reminder was sent
 }
 
 export interface RescheduleRequest {
@@ -132,4 +133,19 @@ export interface User {
     confettiEnabled?: boolean
     showMotivation?: boolean
   }
+  workingHours?: {
+    id?: string
+    dayOfWeek: number
+    startTime: string
+    endTime: string
+    active: boolean
+  }[]
+  blackoutSlots?: {
+    id: string
+    date: string
+    startTime: string
+    endTime: string
+    notes?: string
+  }[]
+  timezone?: string
 }

@@ -19,6 +19,8 @@ import {
 } from "lucide-react"
 import { store } from "@/lib/store"
 import type { Student, Lesson, Payment, Package } from "@/lib/types"
+import { useCustomization } from "@/lib/context"
+import { cn } from "@/lib/utils"
 
 export default function InsightsPage() {
   const [students, setStudents] = useState<Student[]>([])
@@ -26,6 +28,7 @@ export default function InsightsPage() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [packages, setPackages] = useState<Package[]>([])
   const [mounted, setMounted] = useState(false)
+  const { sidebarCollapsed } = useCustomization()
 
   useEffect(() => {
     setMounted(true)
@@ -126,11 +129,14 @@ export default function InsightsPage() {
   const teachingHours = monthLessons.reduce((sum, l) => sum + l.duration / 60, 0)
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background transition-all duration-300 ease-in-out">
       <Sidebar />
-      <div className="ml-64">
+      <div className={cn(
+        "transition-all duration-300 ease-in-out",
+        sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
+      )}>
         <Header title="Insights & Analytics" subtitle="Track your teaching business performance" />
-        <main className="p-6">
+        <main className="p-4 lg:p-6">
           <div className="space-y-6">
             {/* Key Metrics */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

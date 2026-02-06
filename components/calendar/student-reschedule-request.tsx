@@ -9,8 +9,9 @@ import { Plus, Trash2, Calendar as CalendarIcon, Clock, AlertCircle } from "luci
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import type { Lesson } from "@/lib/types"
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
 import { TIMEZONES } from "@/lib/constants"
+import { AvailabilityPicker } from "./availability-picker"
 
 interface StudentRescheduleRequestProps {
   open: boolean
@@ -42,6 +43,7 @@ export function StudentRescheduleRequest({
   const [reason, setReason] = useState("")
   const [otherReason, setOtherReason] = useState("")
   const [timezone, setTimezone] = useState("UTC")
+  const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null)
 
   useEffect(() => {
     if (initialTimezone) {
@@ -50,25 +52,14 @@ export function StudentRescheduleRequest({
       setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone)
     }
   }, [initialTimezone, open])
-  const [slots, setSlots] = useState<{ date: string, time: string }[]>([
-    { date: "", time: "" },
-    { date: "", time: "" },
-    { date: "", time: "" },
-  ])
 
   if (!lesson) return null
 
-  const handleUpdateSlot = (index: number, key: 'date' | 'time', value: string) => {
-    const newSlots = [...slots]
-    newSlots[index][key] = value
-    setSlots(newSlots)
-  }
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const validSlots = slots.filter(s => s.date && s.time)
-    if (validSlots.length === 0) {
-        alert("Please provide at least one proposed time slot.")
+    
+    if (!selectedSlot) {
+        alert("Please pick an available time slot.")
         return
     }
     
@@ -83,16 +74,16 @@ export function StudentRescheduleRequest({
         return
     }
 
-    onConfirm(validSlots, finalReason, timezone)
+    onConfirm([selectedSlot], finalReason, timezone)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Request Reschedule</DialogTitle>
           <DialogDescription>
-            Propose up to 3 alternative time slots. Your teacher will choose one to finalize the change.
+            Choose a new time for your lesson. Available slots are shown based on your teacher's schedule.
           </DialogDescription>
         </DialogHeader>
 
@@ -121,74 +112,27 @@ export function StudentRescheduleRequest({
                         required
                     />
                 )}
-                <p className="text-[10px] text-muted-foreground italic">Note: This reason will be recorded for future reference.</p>
             </div>
 
-            <div className="h-px bg-border my-4" />
+            <div className="h-px bg-border my-2" />
             
-            <Label className="font-semibold block mb-2">Alternative Slots</Label>
-            <div className="space-y-2">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label htmlFor="timezone">Timezone *</Label>
+                <Label className="font-semibold text-lg">Pick a New Slot</Label>
+                <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200">
+                  {selectedSlot ? `${format(parseISO(selectedSlot.date), "MMM d")} at ${selectedSlot.time}` : "No slot selected"}
+                </Badge>
               </div>
-              <Select
-                value={timezone}
-                onValueChange={setTimezone}
-              >
-                <SelectTrigger id="timezone">
-                  <SelectValue placeholder="Select Timezone" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIMEZONES.map((tz) => (
-                    <SelectItem key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+              <AvailabilityPicker 
+                teacherId="teacher" 
+                duration={lesson.duration}
+                selectedDate={selectedSlot?.date}
+                selectedTime={selectedSlot?.time}
+                timezone={timezone}
+                onSelect={(date, time) => setSelectedSlot({ date, time })}
+              />
             </div>
-            {slots.map((slot, index) => (
-              <div key={index} className="space-y-2 p-3 rounded-lg border bg-muted/30">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Proposed Option {index + 1}
-                </Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label htmlFor={`date-${index}`} className="sr-only">Date</Label>
-                    <Input 
-                      id={`date-${index}`}
-                      type="date"
-                      value={slot.date}
-                      onChange={(e) => handleUpdateSlot(index, 'date', e.target.value)}
-                      className="bg-transparent"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <Label htmlFor={`time-${index}`} className="sr-only">Time</Label>
-                      <Badge variant="outline" className="text-[10px] py-0 bg-indigo-50 text-indigo-700">
-                        Local
-                      </Badge>
-                    </div>
-                    <Select
-                      value={slot.time?.split(":")[0]}
-                      onValueChange={(hour) => handleUpdateSlot(index, 'time', `${hour}:00`)}
-                    >
-                      <SelectTrigger id={`time-${index}`} className="bg-transparent h-10">
-                        <SelectValue placeholder="Hour" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from({ length: 24 }, (_, i) => {
-                          const hour = i.toString().padStart(2, "0")
-                          const label = i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`
-                          return <SelectItem key={hour} value={hour}>{label}</SelectItem>
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
 
           {isLate && (
@@ -203,7 +147,7 @@ export function StudentRescheduleRequest({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">Submit Request</Button>
+            <Button type="submit" disabled={!selectedSlot} className="bg-indigo-600 hover:bg-indigo-700">Submit Request</Button>
           </DialogFooter>
         </form>
       </DialogContent>

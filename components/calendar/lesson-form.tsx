@@ -16,7 +16,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Lesson, Student, RecurrenceType } from "@/lib/types"
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
+import { AvailabilityPicker } from "./availability-picker"
 
 import { TIMEZONES } from "@/lib/constants"
 
@@ -25,6 +26,7 @@ interface LessonFormProps {
   onOpenChange: (open: boolean) => void
   lesson?: Lesson | null
   students: Student[]
+  teacher?: User | null
   onSave: (lesson: Omit<Lesson, "id" | "createdAt"> | Partial<Lesson>, generateRecurring?: boolean) => void
   onDelete?: (lesson: Lesson) => void
   defaultDate?: string
@@ -154,7 +156,7 @@ export function LessonForm({ open, onOpenChange, lesson, students, onSave, onDel
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{lesson ? "Edit Lesson" : "Schedule New Lesson"}</DialogTitle>
         </DialogHeader>
@@ -203,21 +205,10 @@ export function LessonForm({ open, onOpenChange, lesson, students, onSave, onDel
 
           {/* Date & Time - Show based on recurrence type */}
           {formData.recurrenceType === "one-time" && (
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="date">Date *</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date || ""}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  required
-                />
-              </div>
+            <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="timezone">Timezone *</Label>
-                  </div>
+                  <Label htmlFor="timezone">Timezone *</Label>
                   <Select
                     value={formData.timezone || "UTC"}
                     onValueChange={(tz) => setFormData({ ...formData, timezone: tz })}
@@ -227,51 +218,41 @@ export function LessonForm({ open, onOpenChange, lesson, students, onSave, onDel
                     </SelectTrigger>
                     <SelectContent>
                       {TIMEZONES.map((tz) => (
-                        <SelectItem key={tz.value} value={tz.value}>
-                          {tz.label}
-                        </SelectItem>
+                        <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="time">Time *</Label>
-                  </div>
+                  <Label htmlFor="duration">Duration (min)</Label>
                   <Select
-                    value={formData.time?.split(":")[0]}
-                    onValueChange={(hour) => setFormData({ ...formData, time: `${hour}:00` })}
+                    value={formData.duration?.toString()}
+                    onValueChange={(value) => setFormData({ ...formData, duration: Number.parseInt(value) })}
                   >
-                    <SelectTrigger id="time">
-                      <SelectValue placeholder="Hour" />
+                    <SelectTrigger>
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 24 }, (_, i) => {
-                        const hour = i.toString().padStart(2, "0")
-                        const label = i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`
-                        return <SelectItem key={hour} value={hour}>{label}</SelectItem>
-                      })}
+                      <SelectItem value="30">30 min</SelectItem>
+                      <SelectItem value="45">45 min</SelectItem>
+                      <SelectItem value="60">60 min</SelectItem>
+                      <SelectItem value="90">90 min</SelectItem>
+                      <SelectItem value="120">120 min</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              <div className="space-y-2">
-                <Label htmlFor="duration">Duration</Label>
-                <Select
-                  value={formData.duration?.toString()}
-                  onValueChange={(value) => setFormData({ ...formData, duration: Number.parseInt(value) })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="30">30 min</SelectItem>
-                    <SelectItem value="45">45 min</SelectItem>
-                    <SelectItem value="60">60 min</SelectItem>
-                    <SelectItem value="90">90 min</SelectItem>
-                    <SelectItem value="120">120 min</SelectItem>
-                  </SelectContent>
-                </Select>
+              </div>
+
+              <div className="p-3 border rounded-lg bg-muted/20">
+                <Label className="mb-2 block font-semibold text-indigo-700">Select Available Date & Time</Label>
+                <AvailabilityPicker
+                  teacherId="teacher"
+                  duration={formData.duration || 60}
+                  selectedDate={formData.date}
+                  selectedTime={formData.time}
+                  timezone={formData.timezone}
+                  onSelect={(date, time) => setFormData({ ...formData, date, time })}
+                />
               </div>
             </div>
           )}

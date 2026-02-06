@@ -11,6 +11,8 @@ import { Plus } from "lucide-react"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import type { Student, Lesson, Homework } from "@/lib/types"
+import { useCustomization } from "@/lib/context"
+import { cn } from "@/lib/utils"
 
 export default function HomeworkPage() {
   const [students, setStudents] = useState<Student[]>([])
@@ -20,6 +22,7 @@ export default function HomeworkPage() {
 
   const [formOpen, setFormOpen] = useState(false)
   const [selectedHomework, setSelectedHomework] = useState<Homework | null>(null)
+  const { sidebarCollapsed } = useCustomization()
 
   useEffect(() => {
     setMounted(true)
@@ -126,11 +129,14 @@ export default function HomeworkPage() {
   const pendingCount = homework.filter((h) => h.status !== "checked").length
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background transition-all duration-300 ease-in-out">
       <Sidebar />
-      <div className="ml-64">
+      <div className={cn(
+        "transition-all duration-300 ease-in-out",
+        sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
+      )}>
         <Header title="Homework" subtitle={`${pendingCount} pending assignments`} />
-        <main className="p-6">
+        <main className="p-4 lg:p-6">
           <div className="mb-6 flex items-center justify-between">
             <p className="text-muted-foreground">Assign and track homework for your students.</p>
             <Button onClick={handleAddHomework}>

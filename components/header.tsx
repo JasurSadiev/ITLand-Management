@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 
-import { Bell, Search, Settings, Globe, Sparkles, Moon, Sun } from "lucide-react"
+import { Bell, Search, Settings, Globe, Sparkles, Moon, Sun, Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,9 +30,10 @@ interface HeaderProps {
 export function Header({ title, subtitle, user }: HeaderProps) {
   const [profile, setProfile] = useState<{ name: string; email: string; preferences?: any } | null>(null)
   const [greeting, setGreeting] = useState(title)
-  const { theme, setTheme, baseMode, setBaseMode, preferences } = useCustomization()
+  const { theme, setTheme, baseMode, setBaseMode, preferences, setMobileMenuOpen } = useCustomization()
 
   const THEMES = [
+// ... (rest of themes)
     { name: "indigo", color: "#4f46e5" },
     { name: "rose", color: "#e11d48" },
     { name: "emerald", color: "#10b981" },
@@ -105,10 +106,20 @@ export function Header({ title, subtitle, user }: HeaderProps) {
   const displayInitials = displayName.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background px-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">{greeting}</h1>
-        {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background px-4 lg:px-6">
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden"
+          onClick={() => setMobileMenuOpen(true)}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        <div>
+          <h1 className="text-xl font-semibold text-foreground truncate max-w-[150px] sm:max-w-none">{greeting}</h1>
+          {subtitle && <p className="text-sm text-muted-foreground hidden sm:block">{subtitle}</p>}
+        </div>
       </div>
 
       <div className="flex items-center gap-4">
@@ -198,6 +209,11 @@ export function Header({ title, subtitle, user }: HeaderProps) {
               window.location.href = role === 'student' ? '/student/settings' : '/settings'
             }}>
               Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              window.location.href = '/settings/availability'
+            }}>
+              Availability
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive cursor-pointer" onClick={handleLogout}>

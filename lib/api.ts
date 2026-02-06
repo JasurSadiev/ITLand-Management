@@ -49,6 +49,7 @@ const mapLessonFromDB = (data: any): Lesson => ({
     actionTakenAt: data.audit_info.action_taken_at,
   } : undefined,
   cancellationReason: data.cancellation_reason,
+  whatsappSent: data.whatsapp_sent,
   createdAt: data.created_at,
 })
 
@@ -204,6 +205,7 @@ export const api = {
         is_makeup: lesson.isMakeup,
         meeting_link: lesson.meetingLink,
         timezone: lesson.timezone,
+        whatsapp_sent: lesson.whatsappSent,
       })
       .select()
       .single()
@@ -250,6 +252,7 @@ export const api = {
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes
     if (updates.meetingLink !== undefined) dbUpdates.meeting_link = updates.meetingLink
     if (updates.cancellationReason !== undefined) dbUpdates.cancellation_reason = updates.cancellationReason
+    if (updates.whatsappSent !== undefined) dbUpdates.whatsapp_sent = updates.whatsappSent
     if (updates.timezone !== undefined) dbUpdates.timezone = updates.timezone
     if (updates.auditInfo !== undefined) {
       dbUpdates.audit_info = {
@@ -259,6 +262,7 @@ export const api = {
         action_taken_at: updates.auditInfo.actionTakenAt,
       }
     }
+    if (updates.whatsappSent !== undefined) dbUpdates.whatsapp_sent = updates.whatsappSent
     
     const { data, error } = await supabase.from("lessons").update(dbUpdates).eq("id", id).select().single()
     if (error) throw error
