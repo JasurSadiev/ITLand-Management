@@ -512,12 +512,25 @@ export default function CalendarPage() {
         const wasLate = hoursDiff < 4
 
         // 3. Update Lesson with new slot and reset status + AUDIT INFO
+        // IMPORTANT: The slot is in request.timezone (e.g. Student's TZ)
+        // We need to store it in the lesson's timezone (Teacher's/Base TZ)
+        const requestTz = request?.timezone || "UTC"
+        const lessonTz = selectedLesson.timezone || "UTC"
+
+        // Parse the requested time in its original timezone
+        const requestedDateTime = fromZonedTime(`${slot.date} ${slot.time}`, requestTz)
+        
+        // Convert to lesson's timezone for storage
+        const lessonDateTime = toZonedTime(requestedDateTime, lessonTz)
+        const newDate = format(lessonDateTime, "yyyy-MM-dd", { timeZone: lessonTz })
+        const newTime = format(lessonDateTime, "HH:mm", { timeZone: lessonTz })
+
         await api.updateLesson(selectedLesson.id, {
-            date: slot.date,
-            time: slot.time,
+            date: newDate,
+            time: newTime,
             status: "upcoming",
             auditInfo: {
-                rescheduledFrom: `${selectedLesson.date} ${selectedLesson.time}`,
+                rescheduledFrom: `${selectedLesson.date} ${selectedLesson.time} (${lessonTz})`,
                 reason: request?.reason || "No reason provided",
                 penaltyCharged: wasLate,
                 actionTakenAt: new Date().toISOString()

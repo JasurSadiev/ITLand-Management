@@ -11,7 +11,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // 1. Define public paths
-  const isPublicPath = pathname === "/login" || pathname.startsWith("/api") || pathname.startsWith("/_next") || pathname.includes(".")
+  const isPublicPath = pathname === "/login" || pathname.startsWith("/reschedule") || pathname.startsWith("/api") || pathname.startsWith("/_next") || pathname.includes(".")
 
   if (isPublicPath) {
     return NextResponse.next()

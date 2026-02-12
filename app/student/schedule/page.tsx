@@ -10,6 +10,7 @@ import type { Lesson, Student } from "@/lib/types"
 import { toZonedTime, fromZonedTime, format } from "date-fns-tz"
 import { StudentLessonDetails } from "@/components/calendar/student-lesson-details"
 import { StudentRescheduleRequest } from "@/components/calendar/student-reschedule-request"
+import { notifications } from "@/lib/notifications/notifier"
 
 import { TIMEZONES } from "@/lib/constants"
 
@@ -99,6 +100,13 @@ export default function StudentSchedulePage() {
                 })
             }
             
+            // 3. Send Telegram notification
+            await notifications.lessonCancelled(
+                student.fullName,
+                student.id,
+                `${lesson.subject || 'Lesson'} on ${lesson.date} at ${lesson.time}${late ? ' (Late cancellation - 1 credit deducted)' : ''}`
+            )
+            
             setDetailsOpen(false)
             loadData()
         } catch (error) {
@@ -135,6 +143,13 @@ export default function StudentSchedulePage() {
                 lessonBalance: (student.lessonBalance || 0) - 1
             })
         }
+
+        // 4. Send Telegram notification
+        await notifications.lessonRescheduled(
+            student.fullName,
+            student.id,
+            `${selectedLesson.subject || 'Lesson'} on ${selectedLesson.date} at ${selectedLesson.time}${isLateReschedule ? ' (Late reschedule - 1 credit deducted)' : ''}`
+        )
 
         setRescheduleOpen(false)
         setDetailsOpen(false)

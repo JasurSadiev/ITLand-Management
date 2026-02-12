@@ -1,4 +1,4 @@
-import type { Student, Lesson, Payment, Package, Homework, Material, User } from "./types"
+import type { Student, Lesson, Payment, Package, Homework, Material, User, Course, LessonContent } from "./types"
 
 // Mock data store with localStorage persistence
 const STORAGE_KEYS = {
@@ -8,6 +8,8 @@ const STORAGE_KEYS = {
   packages: "teacher-admin-packages",
   homework: "teacher-admin-homework",
   materials: "teacher-admin-materials",
+  courses: "teacher-admin-courses",
+  lessonContents: "teacher-admin-lesson-contents",
   currentUser: "teacher-admin-user",
 }
 
@@ -220,6 +222,73 @@ const initialMaterials: Material[] = [
   },
 ]
 
+const initialCourses: Course[] = [
+  {
+    id: "c1",
+    title: "Python for Kids 🐍",
+    description: "Learn Python from scratch with fun projects!",
+    tags: ["Python", "Kids", "Programming"],
+    createdAt: "2024-03-01",
+  },
+]
+
+const initialLessonContents: LessonContent[] = [
+  {
+    id: "lc1",
+    courseId: "c1",
+    level: "Beginner",
+    title: "Meet the Magic Pencil ✏️",
+    estimatedTime: "55 minutes",
+    miniProject: "A Python program that introduces itself to the world!",
+    goals: [
+      "Tell Python how to speak using the magic 'print' command",
+      "Send a custom message to your computer screen",
+      "Run your very first piece of real Python code"
+    ],
+    ideaAnalogy: "Imagine Python is like a super-smart robot that follows your every command. But this robot needs a special 'Magic Pencil' (called `print`) to write messages on its screen. Without the magic pencil, the robot might be thinking, but it won't show us what it's thinking!",
+    tryItNow: "print('Hello, Future Coder!')",
+    codeExplanation: [
+      "`print` is the command that tells Python to show something on the screen",
+      "The parentheses `()` are like the robot's ears, listening to what you want it to say",
+      "The quotation marks `' '` are like a container for your secret message"
+    ],
+    practiceExercises: {
+      easy: "Change 'Future Coder' to your own name!",
+      medium: "Add a second line of code that says 'I am learning Python!'",
+      challenge: "Can you make Python 'draw' a smiley face using characters? Hint: print(': )')"
+    },
+    mainProject: {
+      title: "The Friendly Robot Greeting 🤖",
+      description: "Build a program that makes your computer act like a friendly robot welcoming people to your room.",
+      steps: [
+        "First, we tell the robot to say hello",
+        "Next, we tell it what its name is",
+        "Finally, we give it a funny robot sound"
+      ],
+      code: "print('SYSTEM STARTING...')\nprint('Hello human! Welcome to the secret base.')\nprint('My name is Py-Bot 3000.')\nprint('BEEP BOOP BEEP!')"
+    },
+    projectUpgrades: [
+      "Make the robot say what its favorite food is (maybe electricity or pizza?)",
+      "Add more robotic sound effects like 'ZWING!' or 'K-CHINK!'",
+      "Use multiple lines to draw a simple robot shape using symbols"
+    ],
+    homework: [
+      "Write a short 'About Me' program with 3 facts about yourself",
+      "Show your robot greeting to a parent or friend and explain how the `print` command works",
+      "Try to find out what happens if you forget one of the quotation marks (don't worry, you won't break anything!)"
+    ],
+    completionMessage: "Amazing work! You've just written real code and communicated with a computer. That's a huge first step!",
+    skillUnlocked: "Magic Pencil Master ✏️",
+    nextLessonTease: "Next time, we'll learn about 'Memory Boxes' so our robot can remember things!",
+    usefulLinks: [
+      { title: "Python Official Tutorial for Kids", url: "https://www.python.org/about/gettingstarted/" },
+      { title: "Interactive Python Playground", url: "https://www.online-python.com/" },
+      { title: "Fun Python Projects for Beginners", url: "https://realpython.com/tutorials/projects/" }
+    ],
+    createdAt: "2024-03-01"
+  }
+]
+
 const defaultUser: User = {
   id: "u1",
   name: "Alex Teacher",
@@ -379,6 +448,53 @@ export const store = {
     return newMaterial
   },
 
+  // Courses
+  getCourses: (): Course[] => getStorage(STORAGE_KEYS.courses, initialCourses),
+  setCourses: (courses: Course[]) => setStorage(STORAGE_KEYS.courses, courses),
+  addCourse: (course: Omit<Course, "id" | "createdAt">): Course => {
+    const courses = store.getCourses()
+    const newCourse: Course = {
+      ...course,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString().split("T")[0],
+    }
+    store.setCourses([...courses, newCourse])
+    return newCourse
+  },
+  deleteCourse: (id: string) => {
+    const courses = store.getCourses().filter((c) => c.id !== id)
+    store.setCourses(courses)
+    // Also delete associated lessons
+    const lessons = store.getLessonContents().filter((l) => l.courseId !== id)
+    store.setLessonContents(lessons)
+  },
+
+  // Lesson Contents
+  getLessonContents: (): LessonContent[] => getStorage(STORAGE_KEYS.lessonContents, initialLessonContents),
+  setLessonContents: (lessons: LessonContent[]) => setStorage(STORAGE_KEYS.lessonContents, lessons),
+  addLessonContent: (lesson: Omit<LessonContent, "id" | "createdAt">): LessonContent => {
+    const lessons = store.getLessonContents()
+    const newLesson: LessonContent = {
+      ...lesson,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString().split("T")[0],
+    }
+    store.setLessonContents([...lessons, newLesson])
+    return newLesson
+  },
+  updateLessonContent: (id: string, updates: Partial<LessonContent>): LessonContent | null => {
+    const lessons = store.getLessonContents()
+    const index = lessons.findIndex((l) => l.id === id)
+    if (index === -1) return null
+    lessons[index] = { ...lessons[index], ...updates }
+    store.setLessonContents(lessons)
+    return lessons[index]
+  },
+  deleteLessonContent: (id: string) => {
+    const lessons = store.getLessonContents().filter((l) => l.id !== id)
+    store.setLessonContents(lessons)
+  },
+
   // User
   getCurrentUser: (): User => {
     const user = getStorage(STORAGE_KEYS.currentUser, defaultUser)
@@ -404,6 +520,8 @@ export const store = {
     store.setPackages(initialPackages)
     store.setHomework(initialHomework)
     store.setMaterials(initialMaterials)
+    store.setCourses(initialCourses)
+    store.setLessonContents(initialLessonContents)
     store.setCurrentUser(defaultUser)
   },
 }

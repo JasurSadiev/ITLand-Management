@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Trash2, Clock, Calendar as CalendarIcon, Save, Plus, ArrowLeft } from "lucide-react"
+import { Trash2, Clock, Calendar as CalendarIcon, Save, Plus, ArrowLeft, RefreshCw } from "lucide-react"
 import { store } from "@/lib/store"
 import { User } from "@/lib/types"
 import { toast } from "sonner"
@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
 
+import { api } from "@/lib/api"
+
 const DAYS = [
   "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
 ]
@@ -26,19 +28,31 @@ const DAYS = [
 export default function AvailabilityPage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    const currentUser = store.getCurrentUser()
-    setUser(currentUser)
-    setLoading(false)
+    async function loadAvailability() {
+        try {
+            const data = await api.getTeacherAvailability()
+            setUser(data)
+        } catch (error) {
+            console.error("Failed to load availability:", error)
+            toast.error("Failed to load settings from server.")
+            // Fallback to local store
+            setUser(store.getCurrentUser())
+        } finally {
+            setLoading(false)
+        }
+    }
+    loadAvailability()
   }, [])
 
   const handleAddSlot = (dayIndex: number) => {
     if (!user) return
     const currentHours = user.workingHours || []
     const newSlot = { 
-      id: crypto.randomUUID(), 
+      id: Math.random().toString(36).substring(2, 11), 
       dayOfWeek: dayIndex, 
       startTime: "09:00", 
       endTime: "17:00", 
@@ -60,9 +74,9 @@ export default function AvailabilityPage() {
     if (!user) return
     const allSlots = [...(user.workingHours || [])]
     const daySlots = allSlots.filter(h => h.dayOfWeek === dayIndex)
-    const otherSlots = allSlots.filter(h => h.dayOfWeek !== dayIndex)
-    
     daySlots[slotIndex] = { ...daySlots[slotIndex], [field]: value }
+    
+    const otherSlots = allSlots.filter(h => h.dayOfWeek !== dayIndex)
     setUser({ ...user, workingHours: [...otherSlots, ...daySlots] })
   }
 
@@ -71,10 +85,64 @@ export default function AvailabilityPage() {
     setUser({ ...user, timezone: tz })
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!user) return
-    store.setCurrentUser(user)
-    toast.success("Availability saved successfully!")
+    setSaving(true)
+    try {
+        await api.updateTeacherAvailability({
+            workingHours: user.workingHours,
+            timezone: user.timezone
+        })
+        store.setCurrentUser(user) // Sync local store too
+        toast.success("Availability saved successfully!")
+    } catch (error) {
+        console.error("Save failed:", error)
+        toast.error("Failed to save settings. Please try again.")
+    } finally {
+        setSaving(false)
+    }
+  }
+
+  const handleAddBlackout = async () => {
+    const date = prompt("Enter date (YYYY-MM-DD):", new Date().toISOString().split("T")[0])
+    if (!date) return
+    
+    const startTime = prompt("Enter start time (HH:MM):", "09:00")
+    if (!startTime) return
+    
+    const endTime = prompt("Enter end time (HH:MM):", "17:00")
+    if (!endTime) return
+
+    const notes = prompt("Enter notes (optional):") || ""
+
+    try {
+        await api.addBlackoutSlot({ date, startTime, endTime, notes })
+        toast.success("Blackout slot added!")
+        // Refresh data
+        setLoading(true)
+        const data = await api.getTeacherAvailability()
+        setUser(data)
+    } catch (error) {
+        toast.error("Failed to add blackout slot.")
+    } finally {
+        setLoading(false)
+    }
+  }
+
+  const handleDeleteBlackout = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this blackout slot?")) return
+    try {
+        await api.deleteBlackoutSlot(id)
+        toast.success("Blackout slot deleted.")
+        // Refresh data
+        setLoading(true)
+        const data = await api.getTeacherAvailability()
+        setUser(data)
+    } catch (error) {
+        toast.error("Failed to delete blackout slot.")
+    } finally {
+        setLoading(false)
+    }
   }
 
   if (loading) return <div className="p-8">Loading...</div>
@@ -94,8 +162,9 @@ export default function AvailabilityPage() {
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Availability Settings</h1>
             <p className="text-muted-foreground">Manage your working hours and blackout slots for the rescheduling system.</p>
           </div>
-          <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 h-11 px-6 text-primary-foreground">
-            <Save className="h-4 w-4 mr-2" /> Save Changes
+          <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90 h-11 px-6 text-primary-foreground">
+            {saving ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+            {saving ? "Saving..." : "Save Changes"}
           </Button>
         </div>
       </div>
@@ -183,28 +252,56 @@ export default function AvailabilityPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-2 border-amber-50 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader className="border-b bg-muted/20">
-           <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-100 rounded-lg">
-              <CalendarIcon className="h-5 w-5 text-amber-600" />
-            </div>
-            <div>
-              <CardTitle>Blackout Slots</CardTitle>
-              <CardDescription>Add one-off dates when you are completely unavailable.</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="py-12">
-           <div className="text-center">
-              <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-muted mb-4">
-                <CalendarIcon className="h-6 w-6 text-muted-foreground" />
+           <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-100 rounded-lg">
+                  <CalendarIcon className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <CardTitle>Blackout Slots</CardTitle>
+                  <CardDescription>Add one-off dates when you are completely unavailable.</CardDescription>
+                </div>
               </div>
-              <p className="text-muted-foreground mb-4">You haven't added any blackout slots yet.</p>
-              <Button variant="outline" className="border-amber-200 hover:bg-amber-50">
-                <Plus className="h-4 w-4 mr-2" /> Add Blackout Slot
+              <Button variant="outline" size="sm" onClick={handleAddBlackout} className="border-amber-200 hover:bg-amber-50">
+                <Plus className="h-4 w-4 mr-2" /> Add Blackout
               </Button>
            </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+           {user?.blackoutSlots && user.blackoutSlots.length > 0 ? (
+             <div className="space-y-3">
+               {user.blackoutSlots.map((slot) => (
+                 <div key={slot.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors">
+                    <div className="flex items-center gap-4">
+                       <div className="bg-amber-50 p-2 rounded text-amber-700 font-bold text-xs">
+                          {slot.date}
+                       </div>
+                       <div>
+                          <p className="font-medium text-sm">{slot.startTime} - {slot.endTime}</p>
+                          {slot.notes && <p className="text-xs text-muted-foreground">{slot.notes}</p>}
+                       </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => slot.id && handleDeleteBlackout(slot.id)}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                       <Trash2 className="h-4 w-4" />
+                    </Button>
+                 </div>
+               ))}
+             </div>
+           ) : (
+             <div className="text-center py-8">
+                <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-muted mb-4">
+                  <CalendarIcon className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground italic">No blackout slots added.</p>
+             </div>
+           )}
         </CardContent>
       </Card>
     </div>

@@ -21,7 +21,7 @@ export interface Student {
   updatedAt: string
   password?: string
   preferences?: {
-    theme?: "indigo" | "rose" | "emerald" | "amber" | "violet"
+    baseMode?: "light" | "dark"
     avatarEmoji?: string
     greetingStyle?: "default" | "motivator" | "space" | "cyber"
     confettiEnabled?: boolean
@@ -119,6 +119,48 @@ export interface Material {
   createdAt: string
 }
 
+export type CourseLevel = "Beginner" | "Basic" | "Intermediate" | "Advanced"
+
+export interface LessonContent {
+  id: string
+  courseId: string
+  level: CourseLevel
+  title: string
+  estimatedTime: string
+  miniProject: string
+  goals: string[]
+  ideaAnalogy: string
+  tryItNow: string
+  codeExplanation: string[]
+  practiceExercises: {
+    easy: string
+    medium: string
+    challenge: string
+  }
+  mainProject: {
+    title: string
+    description: string
+    steps: string[]
+    code: string
+  }
+  projectUpgrades: string[]
+  homework: string[]
+  completionMessage: string
+  skillUnlocked: string
+  nextLessonTease: string
+  usefulLinks?: { title: string; url: string }[]
+  createdAt: string
+}
+
+export interface Course {
+  id: string
+  title: string
+  description?: string
+  thumbnail?: string
+  tags: string[]
+  createdAt: string
+}
+
 export type UserRole = "teacher" | "assistant"
 
 export interface User {
@@ -127,7 +169,7 @@ export interface User {
   email: string
   role: UserRole
   preferences?: {
-    theme?: "indigo" | "rose" | "emerald" | "amber" | "violet"
+    baseMode?: "light" | "dark"
     avatarEmoji?: string
     greetingStyle?: "default" | "motivator" | "space" | "cyber"
     confettiEnabled?: boolean
@@ -148,4 +190,14 @@ export interface User {
     notes?: string
   }[]
   timezone?: string
+}
+
+export interface Message {
+  id: string
+  studentId: string
+  teacherId?: string
+  sender: "student" | "teacher"
+  content: string
+  read: boolean
+  createdAt: string
 }

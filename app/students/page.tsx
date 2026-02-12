@@ -144,6 +144,7 @@ export default function StudentsPage() {
             payments={payments}
             homework={homework}
             packages={packages}
+            onRefresh={loadData}
             onEdit={() => {
               setProfileOpen(false)
               setFormOpen(true)

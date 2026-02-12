@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Mail, Phone, MessageCircle, Calendar as CalendarIcon, DollarSign, Clock, Edit, BookOpen, Lock, Download, CalendarDays } from "lucide-react"
 import type { Student, Lesson, Payment, Homework, Package } from "@/lib/types"
+import { api } from "@/lib/api"
 import { useState } from "react"
 import { format, isWithinInterval, startOfMonth, endOfMonth } from "date-fns"
 import { jsPDF } from "jspdf"
@@ -25,6 +26,7 @@ interface StudentProfileProps {
   payments: Payment[]
   homework: Homework[]
   packages: Package[]
+  onRefresh?: () => void
   onEdit: () => void
 }
 
@@ -36,6 +38,7 @@ export function StudentProfile({
   payments,
   homework,
   packages,
+  onRefresh,
   onEdit,
 }: StudentProfileProps) {
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -43,8 +46,23 @@ export function StudentProfile({
     to: endOfMonth(new Date()),
   })
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isUpdatingBalance, setIsUpdatingBalance] = useState(false)
 
   if (!student) return null
+
+  const handleUpdateBalance = async (increment: number) => {
+    try {
+      setIsUpdatingBalance(true)
+      const newBalance = (student.lessonBalance || 0) + increment
+      await api.updateStudent(student.id, { lessonBalance: Math.max(0, newBalance) })
+      if (onRefresh) onRefresh()
+    } catch (error) {
+      console.error("Failed to update balance:", error)
+      alert("Failed to update balance. Please try again.")
+    } finally {
+      setIsUpdatingBalance(false)
+    }
+  }
 
   const studentLessons = lessons.filter((l) => l.studentIds.includes(student.id))
   const studentPayments = payments.filter((p) => p.studentId === student.id)
@@ -306,7 +324,23 @@ export function StudentProfile({
             <Card>
               <CardContent className="p-4 text-center">
                 <span className="flex justify-center items-center h-5 w-5 mx-auto text-muted-foreground font-bold">#</span>
-                <p className="text-2xl font-bold mt-1">{student.lessonBalance || 0}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <button 
+                    onClick={() => handleUpdateBalance(-1)}
+                    disabled={isUpdatingBalance || (student.lessonBalance || 0) <= 0}
+                    className="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-red-200 disabled:opacity-50"
+                  >
+                    -
+                  </button>
+                  <p className="text-2xl font-bold">{student.lessonBalance || 0}</p>
+                  <button 
+                    onClick={() => handleUpdateBalance(1)}
+                    disabled={isUpdatingBalance}
+                    className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 hover:bg-emerald-200 disabled:opacity-50"
+                  >
+                    +
+                  </button>
+                </div>
                 <p className="text-xs text-muted-foreground">Paid Lessons</p>
               </CardContent>
             </Card>

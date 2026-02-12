@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { useConfetti } from "@/components/confetti-provider"
+import { notifications } from "@/lib/notifications/notifier"
 
 export default function StudentHomeworkPage() {
   const [student, setStudent] = useState<Student | null>(null)
@@ -98,6 +99,16 @@ export default function StudentHomeworkPage() {
         submissionText: submissionText,
         submittedAt: new Date().toISOString()
       })
+      
+      // Send Telegram notification
+      if (student) {
+        await notifications.homeworkSubmitted(
+          student.fullName,
+          student.id,
+          selectedHw.title
+        )
+      }
+      
       if (student?.preferences?.confettiEnabled) {
         fire()
       }

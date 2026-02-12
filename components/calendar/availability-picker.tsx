@@ -18,6 +18,8 @@ interface AvailabilityPickerProps {
   selectedDate?: string
   selectedTime?: string
   timezone?: string
+  teacher?: User | null
+  lessons?: Lesson[]
 }
 
 export function AvailabilityPicker({ 
@@ -26,25 +28,32 @@ export function AvailabilityPicker({
   teacherId, 
   selectedDate: initDate, 
   selectedTime: initTime,
-  timezone = "UTC"
+  timezone = "UTC",
+  teacher: propTeacher,
+  lessons: propLessons
 }: AvailabilityPickerProps) {
   const [date, setDate] = useState<Date | undefined>(initDate ? parseISO(initDate) : new Date())
   const [slots, setSlots] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
-  const [teacher, setTeacher] = useState<User | null>(null)
-  const [lessons, setLessons] = useState<Lesson[]>([])
+  const [teacher, setTeacher] = useState<User | null>(propTeacher || null)
+  const [lessons, setLessons] = useState<Lesson[]>(propLessons || [])
+
+  useEffect(() => {
+    if (propTeacher) setTeacher(propTeacher)
+    if (propLessons) setLessons(propLessons)
+  }, [propTeacher, propLessons])
 
   useEffect(() => {
     async function fetchData() {
+      if (propTeacher && propLessons) return // Already have data
+      
       const allLessons = await api.getLessons()
-      // In this app, the "teacher" is the current logged in user (or the only teacher)
-      // Since we don't have a specific teacher fetch by ID yet, we'll use the current one from store
       const { store } = await import("@/lib/store")
-      setTeacher(store.getCurrentUser())
-      setLessons(allLessons)
+      if (!propTeacher) setTeacher(store.getCurrentUser())
+      if (!propLessons) setLessons(allLessons)
     }
     fetchData()
-  }, [])
+  }, [propTeacher, propLessons])
 
   useEffect(() => {
     if (date && teacher) {
@@ -65,7 +74,7 @@ export function AvailabilityPicker({
           mode="single"
           selected={date}
           onSelect={setDate}
-          disabled={(date) => date < startOfDay(new Date()) || date > addDays(new Date(), 30)}
+          disabled={(date) => date < startOfDay(new Date()) || date > addDays(new Date(), 365)}
           className="rounded-md border shadow-sm"
         />
       </div>
@@ -81,6 +90,7 @@ export function AvailabilityPicker({
               {slots.map((slot) => (
                 <Button
                   key={slot}
+                  type="button"
                   variant={initTime === slot && format(date!, "yyyy-MM-dd") === initDate ? "default" : "outline"}
                   className={`h-10 ${initTime === slot && format(date!, "yyyy-MM-dd") === initDate ? "bg-indigo-600" : "hover:border-indigo-600 hover:text-indigo-600"}`}
                   onClick={() => onSelect(format(date!, "yyyy-MM-dd"), slot)}

@@ -1,10 +1,11 @@
 "use client"
 
 import Link from "next/link"
+import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 // Use BookOpen as logo icon, LogOut for logout
-import { BookOpen, LogOut, LayoutDashboard, Calendar, FileText, Settings, ChevronLeft, ChevronRight, Menu } from "lucide-react"
+import { BookOpen, LogOut, LayoutDashboard, Calendar, FileText, Settings, ChevronLeft, ChevronRight, Menu, MessageSquare } from "lucide-react"
 import { useCustomization } from "@/lib/context"
 import { Button } from "./ui/button"
 
@@ -12,6 +13,7 @@ const navigation = [
   { name: "Dashboard", href: "/student", icon: LayoutDashboard },
   { name: "Schedule", href: "/student/schedule", icon: Calendar },
   { name: "Homework", href: "/student/homework", icon: FileText },
+  { name: "Messages", href: "/student/chat", icon: MessageSquare },
   { name: "Settings", href: "/student/settings", icon: Settings },
 ]
 
@@ -23,6 +25,11 @@ export function StudentSidebar({ theme: propTheme }: StudentSidebarProps) {
   const pathname = usePathname()
   const { theme: contextTheme, preferences, sidebarCollapsed, setSidebarCollapsed, mobileMenuOpen, setMobileMenuOpen } = useCustomization()
   const theme = propTheme || contextTheme
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const sidebarClasses = cn(
     "fixed left-0 top-0 z-40 h-screen border-r border-border bg-card transition-all duration-300 ease-in-out",
@@ -89,7 +96,7 @@ export function StudentSidebar({ theme: propTheme }: StudentSidebarProps) {
                 </div>
                 <div className="flex-1 overflow-hidden">
                     <p className="text-sm font-medium truncate">
-                        {typeof window !== "undefined" ? JSON.parse(localStorage.getItem("currentStudent") || "{}").fullName || "Student" : "Student"}
+                        {mounted ? JSON.parse(localStorage.getItem("currentStudent") || "{}").fullName || "Student" : "Student"}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">Student</p>
                 </div>

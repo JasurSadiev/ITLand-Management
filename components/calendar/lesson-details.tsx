@@ -1,3 +1,4 @@
+"use client"
 import { useState, useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -41,6 +42,21 @@ export function LessonDetails({
   isPaidComputed,
   timezone = "UTC",
 }: LessonDetailsProps) {
+  // Determine the payment status to display, carefully handling potential undefined
+  const displayPaymentStatus = isPaidComputed !== undefined
+    ? (isPaidComputed ? "paid" : "unpaid")
+    : (lesson?.paymentStatus || "unpaid");
+
+  const [rescheduleRequest, setRescheduleRequest] = useState<any>(null)
+
+  useEffect(() => {
+    if (open && lesson?.status === "reschedule-requested") {
+      api.getRescheduleRequestByLessonId(lesson.id).then(setRescheduleRequest)
+    } else {
+      setRescheduleRequest(null)
+    }
+  }, [open, lesson])
+
   if (!lesson) return null
 
   // Adjusted time for display
@@ -68,21 +84,6 @@ export function LessonDetails({
     unpaid: "bg-amber-100 text-amber-700",
     package: "bg-blue-100 text-blue-700",
   }
-
-  // Determine the payment status to display
-  const displayPaymentStatus = isPaidComputed !== undefined
-    ? (isPaidComputed ? "paid" : "unpaid")
-    : lesson.paymentStatus;
-
-  const [rescheduleRequest, setRescheduleRequest] = useState<any>(null)
-
-  useEffect(() => {
-    if (open && lesson?.status === "reschedule-requested") {
-      api.getRescheduleRequestByLessonId(lesson.id).then(setRescheduleRequest)
-    } else {
-      setRescheduleRequest(null)
-    }
-  }, [open, lesson])
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -118,18 +119,39 @@ export function LessonDetails({
 
                <p className="text-xs text-indigo-600">The student has proposed the following dates. Choose one to approve.</p>
                <div className="grid gap-2">
-                  {rescheduleRequest.proposedSlots.map((slot: any, idx: number) => (
-                    <Button 
-                      key={idx} 
-                      variant="outline" 
-                      size="sm" 
-                      className="justify-between bg-white hover:bg-indigo-100 hover:border-indigo-300 group"
-                      onClick={() => onAcceptReschedule?.(rescheduleRequest.id, slot)}
-                    >
-                      <span className="text-xs">{slot.date} at {slot.time}</span>
-                      <CheckCircle className="h-4 w-4 text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </Button>
-                  ))}
+                  {rescheduleRequest.proposedSlots.map((slot: any, idx: number) => {
+                     // Check if request has a timezone, if not assume stored time is "absolute" (legacy) or UTC?
+                     // Assuming request.timezone exists as we added it.
+                     const requestTz = rescheduleRequest.timezone || "UTC"
+                     
+                     // Parse slot time in request timezone
+                     const slotDateTime = fromZonedTime(`${slot.date} ${slot.time}`, requestTz)
+                     
+                     // Convert to VIEW timezone (timezone prop)
+                     const displayZonedDate = toZonedTime(slotDateTime, timezone)
+                     const displayDateStr = formatTz(displayZonedDate, "MMM d, yyyy", { timeZone: timezone })
+                     const displayTimeStr = formatTz(displayZonedDate, "HH:mm", { timeZone: timezone })
+                     
+                     return (
+                        <Button 
+                          key={idx} 
+                          variant="outline" 
+                          size="sm" 
+                          className="justify-between bg-white hover:bg-indigo-100 hover:border-indigo-300 group h-auto py-2"
+                          onClick={() => onAcceptReschedule?.(rescheduleRequest.id, slot)}
+                        >
+                          <div className="flex flex-col items-start text-xs">
+                             <span className="font-semibold">{displayDateStr} at {displayTimeStr}</span>
+                             {requestTz !== timezone && (
+                                <span className="text-[10px] text-muted-foreground">
+                                    (Student: {slot.date} {slot.time} {requestTz})
+                                </span>
+                             )}
+                          </div>
+                          <CheckCircle className="h-4 w-4 text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0" />
+                        </Button>
+                      )
+                  })}
                </div>
             </div>
           )}

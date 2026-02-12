@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { api } from "@/lib/api"
 import type { Student, Lesson, Payment, Homework } from "@/lib/types"
 import { format } from "date-fns"
+import { toZonedTime, fromZonedTime, format as formatTz } from "date-fns-tz"
 import { Calendar, Clock, Video, BookOpen, AlertCircle } from "lucide-react"
 import { MotivationWidget } from "@/components/motivation-widget"
 
@@ -46,7 +47,30 @@ export default function StudentDashboard() {
                 l.status !== "cancelled-teacher" && 
                 l.status !== "cancelled-student"
             )
-            setLessons(studentLessons)
+
+            // Sort lessons: upcoming (nearest first), then past (most recent first)
+            const now = new Date()
+            const sortedLessons = [...studentLessons].sort((a, b) => {
+              const aTz = a.timezone || "UTC"
+              const bTz = b.timezone || "UTC"
+              const dateA = fromZonedTime(`${a.date} ${a.time}`, aTz).getTime()
+              const dateB = fromZonedTime(`${b.date} ${b.time}`, bTz).getTime()
+              const nowTime = now.getTime()
+
+              const aUpcoming = dateA >= nowTime
+              const bUpcoming = dateB >= nowTime
+
+              if (aUpcoming && !bUpcoming) return -1
+              if (!aUpcoming && bUpcoming) return 1
+              
+              if (aUpcoming && bUpcoming) {
+                return dateA - dateB // Nearest upcoming first
+              } else {
+                return dateB - dateA // Most recent past first (descending)
+              }
+            })
+
+            setLessons(sortedLessons)
         }
     } catch (error) {
         console.error("Failed to load student data", error)
@@ -62,12 +86,15 @@ export default function StudentDashboard() {
   const now = new Date()
   const upcomingLessons = lessons
     .filter(l => {
-        const lessonDate = new Date(`${l.date}T${l.time}`)
-        return lessonDate >= now
+        const lessonTz = l.timezone || "UTC"
+        const lessonDateUTC = fromZonedTime(`${l.date} ${l.time}`, lessonTz)
+        return lessonDateUTC >= now
     })
     .sort((a, b) => {
-        const dateA = new Date(`${a.date}T${a.time}`)
-        const dateB = new Date(`${b.date}T${b.time}`)
+        const aTz = a.timezone || "UTC"
+        const bTz = b.timezone || "UTC"
+        const dateA = fromZonedTime(`${a.date} ${a.time}`, aTz)
+        const dateB = fromZonedTime(`${b.date} ${b.time}`, bTz)
         return dateA.getTime() - dateB.getTime()
     })
 
@@ -101,7 +128,12 @@ export default function StudentDashboard() {
                                 <h3 className="text-xl font-bold">{nextLesson.subject || "Private Lesson"}</h3>
                                 <p className="text-muted-foreground flex items-center gap-2 mt-1">
                                     <Clock className="h-4 w-4" />
-                                    {format(new Date(nextLesson.date), "EEEE, MMMM do, yyyy")} at {nextLesson.time}
+                                    {(() => {
+                                        const studentTz = student.timezone || "UTC"
+                                        const lessonDateUTC = fromZonedTime(`${nextLesson.date} ${nextLesson.time}`, nextLesson.timezone || "UTC")
+                                        const zonedDate = toZonedTime(lessonDateUTC, studentTz)
+                                        return `${formatTz(zonedDate, "EEEE, MMMM do, yyyy", { timeZone: studentTz })} at ${formatTz(zonedDate, "HH:mm", { timeZone: studentTz })}`
+                                    })()}
                                     <Badge variant="outline" className="ml-2">{nextLesson.duration} min</Badge>
                                 </p>
                             </div>
@@ -161,7 +193,14 @@ export default function StudentDashboard() {
                              <div key={l.id} className="flex justify-between items-center text-sm border-b pb-2 last:border-0">
                                 <div>
                                     <p className="font-medium">{l.subject || "Lesson"}</p>
-                                    <p className="text-muted-foreground">{l.date}</p>
+                                    <p className="text-muted-foreground">
+                                        {(() => {
+                                            const studentTz = student.timezone || "UTC"
+                                            const lessonDateUTC = fromZonedTime(`${l.date} ${l.time}`, l.timezone || "UTC")
+                                            const zonedDate = toZonedTime(lessonDateUTC, studentTz)
+                                            return formatTz(zonedDate, "MMM d, HH:mm", { timeZone: studentTz })
+                                        })()}
+                                    </p>
                                 </div>
                                 <Badge variant={l.status === 'completed' ? 'secondary' : 'outline'}>
                                     {l.status}

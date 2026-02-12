@@ -60,6 +60,7 @@ export default function HomeworkPage() {
 
   const handleSaveHomework = async (data: any) => {
     try {
+      console.log("Saving homework with data:", data)
       if (selectedHomework) {
         // Edit existing
         await api.updateHomework(selectedHomework.id, data)
@@ -68,14 +69,15 @@ export default function HomeworkPage() {
         // Batch create new
         const assignments = data.studentIds.map((studentId: string) => ({
           studentId,
-          lessonId: data.lessonId,
+          lessonId: data.lessonId || null,
           title: data.title,
           description: data.description,
           dueDate: data.dueDate,
           timezone: data.timezone,
-          status: "assigned",
+          status: "assigned" as const,
           attachments: [],
         }))
+        console.log("Creating homework assignments:", assignments)
         await api.createHomeworks(assignments)
         toast.success(`Homework assigned to ${data.studentIds.length} students`)
       }
@@ -84,7 +86,14 @@ export default function HomeworkPage() {
       setSelectedHomework(null)
     } catch (error: any) {
       console.error("Failed to save homework:", error)
-      toast.error(`Failed to save homework: ${error.message || "Unknown error"}`)
+      console.error("Error details:", {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        full: JSON.stringify(error, null, 2)
+      })
+      toast.error(`Failed to save homework: ${error?.message || error?.code || "Unknown error"}`)
     }
   }
 

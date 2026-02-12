@@ -24,12 +24,28 @@ export default function StudentSettingsPage() {
   })
 
   useEffect(() => {
-    const studentData = localStorage.getItem("currentStudent")
-    if (studentData) {
-      setStudent(JSON.parse(studentData))
-    }
-    setLoading(false)
+    loadStudent()
   }, [])
+
+  const loadStudent = async () => {
+    try {
+      const match = document.cookie.match(new RegExp('(^| )student-id=([^;]+)'))
+      const studentId = match ? match[2] : null
+
+      if (!studentId) {
+        window.location.href = "/login"
+        return
+      }
+
+      const currentStudent = await api.getStudentById(studentId)
+      setStudent(currentStudent)
+    } catch (error) {
+      console.error("Failed to load student settings", error)
+      toast.error("Failed to load account data")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,9 +63,10 @@ export default function StudentSettingsPage() {
 
     setIsUpdating(true)
     try {
-      // In this demo, we verify current password locally
-      // In a real app, this should be done on the server/DB side
-      if (formData.currentPassword !== student.password) {
+      // Fetch fresh student data to verify password (prevents session hijacking / outdated localStorage)
+      const freshStudent = await api.getStudentById(student.id)
+      
+      if (formData.currentPassword !== freshStudent.password) {
         toast.error("Incorrect current password")
         setIsUpdating(false)
         return
@@ -57,10 +74,8 @@ export default function StudentSettingsPage() {
 
       await api.updateStudent(student.id, { password: formData.newPassword })
       
-      // Update local storage
-      const updatedStudent = { ...student, password: formData.newPassword }
-      localStorage.setItem("currentStudent", JSON.stringify(updatedStudent))
-      setStudent(updatedStudent)
+      // Update state
+      setStudent({ ...freshStudent, password: formData.newPassword })
       
       toast.success("Password updated successfully!")
       setFormData({

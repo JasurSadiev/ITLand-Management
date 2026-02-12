@@ -12,8 +12,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Search, Filter, Mail, Phone } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { MoreHorizontal, Search, Filter, Mail, Phone, Link as LinkIcon, Copy, Check } from "lucide-react"
 import type { Student } from "@/lib/types"
+import { cn, copyToClipboard } from "@/lib/utils"
 
 interface StudentTableProps {
   students: Student[]
@@ -25,6 +33,8 @@ interface StudentTableProps {
 export function StudentTable({ students, onEdit, onDelete, onView }: StudentTableProps) {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [selectedStudentForLink, setSelectedStudentForLink] = useState<Student | null>(null)
+  const [isCopied, setIsCopied] = useState(false)
 
   const filteredStudents = students.filter((student) => {
     const matchesSearch =
@@ -176,6 +186,14 @@ export function StudentTable({ students, onEdit, onDelete, onView }: StudentTabl
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => onView(student)}>View Profile</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onEdit(student)}>Edit</DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedStudentForLink(student)
+                          setIsCopied(false)
+                        }}>
+                          <LinkIcon className="mr-2 h-4 w-4" />
+                          Copy Portal Link
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive" onClick={() => onDelete(student.id)}>
                           Delete
@@ -189,6 +207,47 @@ export function StudentTable({ students, onEdit, onDelete, onView }: StudentTabl
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={!!selectedStudentForLink} onOpenChange={(open) => !open && setSelectedStudentForLink(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Reschedule Portal</DialogTitle>
+            <DialogDescription>
+              Any parent with this link can reschedule lessons for {selectedStudentForLink?.fullName}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center space-x-2">
+            <div className="grid flex-1 gap-2">
+              <label htmlFor="link" className="sr-only">
+                Link
+              </label>
+              <Input
+                id="link"
+                readOnly
+                value={selectedStudentForLink ? `${window.location.origin}/reschedule/student/${selectedStudentForLink.id}` : ""}
+                className="h-9 px-3 text-xs"
+              />
+            </div>
+            <Button 
+                size="sm" 
+                className="px-3"
+                onClick={async () => {
+                    if (selectedStudentForLink) {
+                        const url = `${window.location.origin}/reschedule/student/${selectedStudentForLink.id}`
+                        const success = await copyToClipboard(url)
+                        if (success) {
+                            setIsCopied(true)
+                            setTimeout(() => setIsCopied(false), 2000)
+                        }
+                    }
+                }}
+            >
+              {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              <span className="sr-only">Copy</span>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

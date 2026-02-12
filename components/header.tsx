@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { usePathname } from "next/navigation"
 
-import { Bell, Search, Settings, Globe, Sparkles, Moon, Sun, Menu } from "lucide-react"
+import { Bell, Search, Settings, Globe, Sparkles, Moon, Sun, Menu, MessageSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +17,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useCustomization } from "@/lib/context"
+import { api } from "@/lib/api"
+import { supabase } from "@/lib/supabase"
 
 interface HeaderProps {
   title: string
@@ -40,6 +43,36 @@ export function Header({ title, subtitle, user }: HeaderProps) {
     { name: "amber", color: "#d97706" },
     { name: "violet", color: "#7c3aed" },
   ]
+
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/student')) return
+
+    const fetchUnread = async () => {
+        try {
+            // Only fetch if we are likely a teacher (or just try, it won't hurt, RLS protects)
+            const count = await api.getUnreadMessageCount()
+            setUnreadCount(count)
+        } catch (e) {
+            // Ignore error (e.g. if student or not logged in)
+        }
+    }
+
+    fetchUnread()
+
+    // Subscribe to changes to update count
+    const channel = supabase
+        .channel('header-chat-count')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
+             fetchUnread()
+        })
+        .subscribe()
+
+    return () => {
+        supabase.removeChannel(channel)
+    }
+  }, [])
 
   useEffect(() => {
     const updateHeaderDetails = () => {
@@ -105,6 +138,9 @@ export function Header({ title, subtitle, user }: HeaderProps) {
   const displayEmail = profile?.email || ""
   const displayInitials = displayName.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()
 
+  const pathname = usePathname()
+  const isStudent = pathname?.startsWith("/student")
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background px-4 lg:px-6">
       <div className="flex items-center gap-3">
@@ -130,58 +166,43 @@ export function Header({ title, subtitle, user }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Quick Color Picker */}
-          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/50 border border-border/50">
-            {THEMES.map((t) => (
-              <button
-                key={t.name}
-                onClick={() => setTheme(t.name)}
-                className={cn(
-                  "h-5 w-5 rounded-full transition-all hover:scale-125 hover:shadow-lg",
-                  theme === t.name ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "opacity-70 hover:opacity-100"
-                )}
-                style={{ backgroundColor: t.color }}
-                title={t.name.charAt(0).toUpperCase() + t.name.slice(1)}
-              />
-            ))}
-          </div>
-
           <div className="flex items-center gap-2">
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="bg-muted/50 rounded-full h-9 w-9 border border-border/50 hover:bg-muted transition-all">
-                    {baseMode === 'light' ? <Sun className="h-4.5 w-4.5 text-amber-500" /> : 
-                    baseMode === 'dark' ? <Moon className="h-4.5 w-4.5 text-indigo-400" /> :
-                    baseMode === 'midnight' ? <Sparkles className="h-4.5 w-4.5 text-purple-400" /> :
-                    baseMode === 'sepia' ? <Settings className="h-4.5 w-4.5 text-orange-600" /> :
-                    <Globe className="h-4.5 w-4.5 text-emerald-500" />}
+                    {baseMode === 'dark' ? <Moon className="h-4.5 w-4.5 text-indigo-400" /> : <Sun className="h-4.5 w-4.5 text-amber-500" />}
                 </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 p-2">
-                <DropdownMenuLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-2 py-1.5">Atmosphere</DropdownMenuLabel>
-                <DropdownMenuSeparator className="my-1" />
                 <DropdownMenuItem onClick={() => setBaseMode('light')} className="flex items-center gap-3 rounded-md cursor-pointer">
                     <Sun className="h-4 w-4 text-amber-500" /> <span>Light</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setBaseMode('dark')} className="flex items-center gap-3 rounded-md cursor-pointer">
                     <Moon className="h-4 w-4 text-indigo-400" /> <span>Dark</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setBaseMode('midnight')} className="flex items-center gap-3 rounded-md cursor-pointer">
-                    <Sparkles className="h-4 w-4 text-purple-400" /> <span>Midnight</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setBaseMode('sepia')} className="flex items-center gap-3 rounded-md cursor-pointer">
-                    <Settings className="h-4 w-4 text-orange-600" /> <span>Sepia</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setBaseMode('nord')} className="flex items-center gap-3 rounded-md cursor-pointer">
-                    <Globe className="h-4 w-4 text-emerald-500" /> <span>Nord</span>
-                </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button variant="ghost" size="icon" className="relative bg-transparent h-9 w-9">
+            {!isStudent && (
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="relative bg-transparent h-9 w-9"
+                    onClick={() => window.location.href = '/chat'}
+                >
+                    <MessageSquare className="h-5 w-5" />
+                    {unreadCount > 0 && (
+                        <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                    )}
+                </Button>
+            )}
+
+            {/* <Button variant="ghost" size="icon" className="relative bg-transparent h-9 w-9">
             <Bell className="h-5 w-5" />
             <span className="absolute right-2 top-2 flex h-2 w-2 rounded-full bg-red-500" />
-          </Button>
+          </Button> */}
         </div>
       </div>
 

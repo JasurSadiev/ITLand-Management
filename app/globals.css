@@ -186,9 +186,26 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring/50 transition-all duration-200;
   }
   body {
     @apply bg-background text-foreground;
+  }
+  button:active, 
+  [role="button"]:active,
+  .active-scale:active {
+    transform: scale(0.95);
+  }
+  
+  .hover-scale:hover {
+    transform: scale(1.02);
+  }
+
+  input, select, textarea {
+    @apply transition-all duration-200 focus:scale-[1.01];
+  }
+
+  .card-hover {
+    @apply hover:shadow-md hover:scale-[1.01] transition-all duration-200;
   }
 }

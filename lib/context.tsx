@@ -8,8 +8,8 @@ import { store } from '@/lib/store'
 interface CustomizationContextType {
   theme: string
   setTheme: (theme: string) => void
-  baseMode: "light" | "dark" | "midnight" | "sepia" | "nord"
-  setBaseMode: (mode: "light" | "dark" | "midnight" | "sepia" | "nord") => void
+  baseMode: "light" | "dark"
+  setBaseMode: (mode: "light" | "dark") => void
   preferences: any
   updatePreferences: (newPrefs: any) => Promise<void>
   refreshPreferences: () => void
@@ -23,7 +23,7 @@ const CustomizationContext = createContext<CustomizationContextType | undefined>
 
 export function CustomizationProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState("indigo")
-  const [baseMode, setBaseMode] = useState<"light" | "dark" | "midnight" | "sepia" | "nord">("light")
+  const [baseMode, setBaseMode] = useState<"light" | "dark">("light")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [preferences, setPreferences] = useState<any>({})
@@ -46,7 +46,7 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
         if (prefs.theme) {
           setTheme(prefs.theme)
         }
-        if (prefs.baseMode) {
+        if (prefs.baseMode === 'dark' || prefs.baseMode === 'light') {
           setBaseMode(prefs.baseMode)
         } else {
             // Default based on time if not set
@@ -63,6 +63,19 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
   useEffect(() => {
     loadPreferences()
   }, [loadPreferences])
+
+  // Apply theme
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const root = document.documentElement
+
+    // Toggle dark mode class
+    if (baseMode === 'dark') {
+        root.classList.add('dark')
+    } else {
+        root.classList.remove('dark')
+    }
+  }, [baseMode])
 
   const updatePreferences = async (newPrefs: any) => {
     const updatedPrefs = { ...preferences, ...newPrefs }
@@ -88,8 +101,14 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
             if (isStudent) {
                 await api.updateStudent(parsed.id, { preferences: updatedPrefs })
             } else {
+                // For teacher, update local store AND DB
                 const currentUser = store.getCurrentUser()
                 store.setCurrentUser({ ...currentUser, preferences: updatedPrefs })
+                try {
+                   await api.updateTeacherAvailability({ preferences: updatedPrefs })
+                } catch (innerE) {
+                   console.warn("Failed to sync teacher prefs to DB, but local saved", innerE)
+                }
             }
         } catch (e) {
             console.error("Failed to sync preferences to API", e)
@@ -99,8 +118,8 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
 
   return (
     <CustomizationContext.Provider value={{ 
-        theme, 
-        setTheme: (t) => updatePreferences({ theme: t }), 
+        theme: preferences.themeId || 'light', 
+        setTheme: (t) => updatePreferences({ themeId: t }), 
         baseMode,
         setBaseMode: (m) => updatePreferences({ baseMode: m }),
         preferences, 

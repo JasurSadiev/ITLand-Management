@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Users, Calendar, CreditCard, BookOpen, BarChart3, Settings, FolderOpen, LogOut, Clock, ChevronLeft, ChevronRight, Menu } from "lucide-react"
+import { LayoutDashboard, Users, Calendar, CreditCard, BookOpen, BarChart3, Settings, FolderOpen, LogOut, Clock, ChevronLeft, ChevronRight, Menu, MessageSquare } from "lucide-react"
 import { store } from "@/lib/store"
 import { useCustomization } from "@/lib/context"
 import { Button } from "./ui/button"
@@ -11,6 +11,7 @@ import { Button } from "./ui/button"
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Students", href: "/students", icon: Users },
+  { name: "Messages", href: "/chat", icon: MessageSquare },
   { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Payments", href: "/payments", icon: CreditCard },
   { name: "Homework", href: "/homework", icon: BookOpen },

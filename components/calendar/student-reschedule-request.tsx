@@ -119,9 +119,23 @@ export function StudentRescheduleRequest({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="font-semibold text-lg">Pick a New Slot</Label>
-                <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200">
-                  {selectedSlot ? `${format(parseISO(selectedSlot.date), "MMM d")} at ${selectedSlot.time}` : "No slot selected"}
-                </Badge>
+                <div className="flex items-center gap-2">
+                    <Select value={timezone} onValueChange={setTimezone}>
+                        <SelectTrigger className="w-[180px] h-8 text-xs">
+                            <SelectValue placeholder="Select Timezone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {TIMEZONES.map(tz => (
+                                <SelectItem key={tz.value} value={tz.value}>
+                                    {tz.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200">
+                      {selectedSlot ? `${format(parseISO(selectedSlot.date), "MMM d")} at ${selectedSlot.time}` : "No slot selected"}
+                    </Badge>
+                </div>
               </div>
 
               <AvailabilityPicker 
