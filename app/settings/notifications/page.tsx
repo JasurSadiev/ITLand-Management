@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Bell, CheckCircle2, XCircle, Send } from "lucide-react"
-import { useCustomization } from "@/components/customization-provider"
+import { useCustomization } from "@/lib/context"
 import { cn } from "@/lib/utils"
 import { testTelegramConnection, sendTelegramMessage } from "@/lib/notifications/telegram"
 
