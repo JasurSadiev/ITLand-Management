@@ -90,7 +90,13 @@ export default function StudentSchedulePage() {
             // 1. Update Lesson Status and reason
             await api.updateLesson(lesson.id, { 
                 status: "cancelled-student",
-                cancellationReason: reason
+                cancellationReason: reason,
+                auditInfo: {
+                    actionTakenAt: new Date().toISOString(),
+                    cancelledBy: "student",
+                    reason: reason,
+                    penaltyCharged: late
+                }
             })
             
             // 2. If late, deduct balance

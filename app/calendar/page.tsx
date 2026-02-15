@@ -326,7 +326,14 @@ export default function CalendarPage() {
 
   const handleCancelLesson = async (id: string) => {
     try {
-      await api.updateLesson(id, { status: "cancelled-teacher" })
+      await api.updateLesson(id, { 
+        status: "cancelled-teacher",
+        auditInfo: {
+          actionTakenAt: new Date().toISOString(),
+          cancelledBy: "teacher",
+          reason: "Cancelled by teacher"
+        }
+      })
       loadData()
     } catch (error) {
       console.error("Failed to cancel lesson:", error)

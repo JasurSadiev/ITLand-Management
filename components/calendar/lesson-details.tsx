@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { User, BookOpen, DollarSign, Edit, Copy, CheckCircle, XCircle, Calendar, CalendarClock, Trash, RefreshCw } from "lucide-react"
+import { User, BookOpen, DollarSign, Edit, Copy, CheckCircle, XCircle, Calendar, CalendarClock, Trash, RefreshCw, Clock } from "lucide-react"
 import { toZonedTime, fromZonedTime, format as formatTz } from "date-fns-tz"
 import { api } from "@/lib/api"
 import type { Lesson, Student } from "@/lib/types"
@@ -179,11 +179,44 @@ export function LessonDetails({
           )}
 
           {/* Cancellation Info */}
-          {lesson.status === "cancelled-student" && lesson.cancellationReason && (
-             <Card className="border-red-100 bg-red-50/20">
+          {lesson.status.startsWith("cancelled") && (
+             <Card className={cn(
+               "border-destructive/20 bg-destructive/5",
+               lesson.status === "cancelled-teacher" && "border-orange-200 bg-orange-50/30"
+             )}>
               <CardContent className="p-3">
-                <p className="text-xs font-bold text-red-800 uppercase mb-1">Cancellation Reason:</p>
-                <p className="text-sm text-red-700">"{lesson.cancellationReason}"</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <XCircle className={cn("h-4 w-4", lesson.status === "cancelled-teacher" ? "text-orange-600" : "text-destructive")} />
+                  <span className={cn("text-xs font-bold uppercase tracking-wider", lesson.status === "cancelled-teacher" ? "text-orange-800" : "text-destructive")}>
+                    {lesson.status === "cancelled-teacher" ? "Teacher" : "Student"} Cancellation
+                  </span>
+                </div>
+
+                {lesson.auditInfo?.actionTakenAt && (
+                   <div className="text-[11px] text-muted-foreground mb-2 flex items-center gap-1">
+                     <Clock className="h-3 w-3" />
+                     <span>
+                        {(() => {
+                          const cancelDate = new Date(lesson.auditInfo.actionTakenAt)
+                          const zonedCancel = toZonedTime(cancelDate, timezone)
+                          return formatTz(zonedCancel, "MMMM d, yyyy 'at' HH:mm", { timeZone: timezone })
+                        })()} ({timezone})
+                     </span>
+                   </div>
+                )}
+
+                <div className="bg-white/50 p-2 rounded border border-black/5">
+                  <p className="text-xs font-semibold text-muted-foreground mr-1 inline">Reason:</p>
+                  <p className="text-sm italic inline">
+                    "{lesson.auditInfo?.reason || lesson.cancellationReason || "No reason provided"}"
+                  </p>
+                </div>
+
+                {lesson.auditInfo?.penaltyCharged && (
+                   <p className="text-[10px] font-medium text-amber-700 bg-amber-50 self-start px-1.5 py-0.5 rounded border border-amber-100 mt-2 inline-block">
+                    Late Cancellation Penalty Applied
+                  </p>
+                )}
               </CardContent>
              </Card>
           )}

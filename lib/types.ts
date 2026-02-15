@@ -55,6 +55,7 @@ export interface Lesson {
     penaltyCharged?: boolean
     reason?: string
     actionTakenAt?: string
+    cancelledBy?: "teacher" | "student"
   }
   cancellationReason?: string
   whatsappSent?: boolean // Tracks if reminder was sent

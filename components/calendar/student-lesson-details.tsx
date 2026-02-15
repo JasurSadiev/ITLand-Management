@@ -144,7 +144,7 @@ export function StudentLessonDetails({
             </div>
           )}
 
-          {lesson.auditInfo && (
+          {lesson.auditInfo && !lesson.status.startsWith("cancelled") && (
             <div className="rounded-lg border border-indigo-100 bg-indigo-50/30 p-3 space-y-1">
               <div className="flex items-center gap-1.5 text-indigo-700">
                 <RefreshCw className="h-3.5 w-3.5" />
@@ -160,6 +160,48 @@ export function StudentLessonDetails({
                 <p className="text-[10px] font-medium text-amber-700 bg-amber-50 self-start px-1.5 py-0.5 rounded border border-amber-100 mt-1 inline-block">
                   Late Reschedule Penalty Applied
                 </p>
+              )}
+            </div>
+          )}
+
+          {/* Cancellation Info */}
+          {lesson.status.startsWith("cancelled") && (
+            <div className={cn(
+                "rounded-lg border p-3 space-y-1",
+                lesson.status === "cancelled-teacher" ? "border-orange-100 bg-orange-50/30" : "border-red-100 bg-red-50/30"
+            )}>
+              <div className={cn(
+                  "flex items-center gap-1.5",
+                  lesson.status === "cancelled-teacher" ? "text-orange-700" : "text-red-700"
+              )}>
+                <XCircle className="h-3.5 w-3.5" />
+                <p className="text-xs font-semibold">
+                    {lesson.status === "cancelled-teacher" ? "Teacher" : "Your"} Cancellation
+                </p>
+              </div>
+              
+              {lesson.auditInfo?.actionTakenAt && (
+                <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-2.5 w-2.5" />
+                    <span>
+                      {(() => {
+                        const cancelDate = new Date(lesson.auditInfo.actionTakenAt)
+                        const zonedCancel = toZonedTime(cancelDate, timezone)
+                        return formatTz(zonedCancel, "MMMM d, yyyy 'at' HH:mm", { timeZone: timezone })
+                      })()} ({timezone})
+                    </span>
+                </div>
+              )}
+
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-3">
+                <span className="font-medium mr-1">Reason:</span>
+                "{lesson.auditInfo?.reason || lesson.cancellationReason || "No reason provided"}"
+              </p>
+
+              {lesson.auditInfo?.penaltyCharged && (
+                 <p className="text-[10px] font-medium text-amber-700 bg-amber-50 self-start px-1.5 py-0.5 rounded border border-amber-100 mt-2 inline-block">
+                    Late Cancellation (1 credit deducted)
+                 </p>
               )}
             </div>
           )}
