@@ -97,16 +97,37 @@ async function handleHelpCommand(chatId: string) {
 }
 
 async function handleStatusCommand(chatId: string) {
-  // Find student by chatId
-  const students = await api.getStudents()
-  const student = students.find(s => s.telegramChatId === chatId)
-  
-  if (student) {
-    await sendTelegramMessage(
-      `👤 *Profile:* ${student.fullName}\n📚 *Status:* ${student.status}\n💰 *Balance:* ${student.lessonBalance} lessons`,
-      chatId
-    )
-  } else {
-    await sendTelegramMessage("You are not logged in. Use /start to link your account.", chatId)
+  try {
+    const students = await api.getStudents()
+    const student = students.find(s => s.telegramChatId === chatId)
+    
+    if (student) {
+      // Get upcoming lessons count for this student
+      let upcomingCount = 0
+      try {
+        const lessons = await api.getLessons({ studentId: student.id })
+        upcomingCount = lessons.filter(l => l.status === 'upcoming').length
+      } catch {}
+
+      const statusEmoji = student.status === 'active' ? '🟢' : student.status === 'paused' ? '🟡' : '🔴'
+      
+      await sendTelegramMessage(
+        `👤 *Your Profile*\n\n` +
+        `*Name:* ${student.fullName}\n` +
+        `*Status:* ${statusEmoji} ${student.status}\n` +
+        `💰 *Lesson Balance:* ${student.lessonBalance} lesson${student.lessonBalance !== 1 ? 's' : ''}\n` +
+        `📅 *Upcoming Lessons:* ${upcomingCount}\n\n` +
+        `_Use /help to see available commands._`,
+        chatId
+      )
+    } else {
+      await sendTelegramMessage(
+        `❌ *Not Linked*\n\nYour Telegram account is not linked to any student profile.\n\nUse /start to link your account by sharing your phone number.`,
+        chatId
+      )
+    }
+  } catch (error: any) {
+    console.error('[Bot] /status error:', error.message || error)
+    await sendTelegramMessage('⚠️ Could not fetch your status. Please try again later.', chatId)
   }
 }
