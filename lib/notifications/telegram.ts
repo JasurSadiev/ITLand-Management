@@ -5,7 +5,11 @@ const TELEGRAM_API_URL = 'https://api.telegram.org/bot'
 /**
  * Send a message via Telegram Bot API
  */
-export async function sendTelegramMessage(message: string, chatId?: string): Promise<boolean> {
+export async function sendTelegramMessage(
+  message: string, 
+  chatId?: string, 
+  options: Partial<TelegramMessage> = {}
+): Promise<boolean> {
   const botToken = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN
   const defaultChatId = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID
   const targetChatId = chatId || defaultChatId
@@ -19,7 +23,8 @@ export async function sendTelegramMessage(message: string, chatId?: string): Pro
     const payload: TelegramMessage = {
       chat_id: targetChatId as string,
       text: message,
-      parse_mode: 'Markdown'
+      parse_mode: 'Markdown',
+      ...options
     }
 
     const response = await fetch(`${TELEGRAM_API_URL}${botToken}/sendMessage`, {

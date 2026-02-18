@@ -1,0 +1,64 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/jasur/Downloads/teacher-admin-panel[39m
+
+[90mstdout[2m | tests/telegram-bot.test.ts[2m > [22m[2mTelegram Bot Handlers[2m > [22m[2mContact Sharing (Login)[2m > [22m[2mshould link student when phone number matches
+[22m[39m📱 Received contact sharing from Chat ID: 123, Phone: +1234567890
+
+[90mstdout[2m | tests/telegram-bot.test.ts[2m > [22m[2mTelegram Bot Handlers[2m > [22m[2mContact Sharing (Login)[2m > [22m[2mshould link student when phone number matches
+[22m[39m🔍 Student search result: Found (Alice)
+
+[90mstdout[2m | tests/telegram-bot.test.ts[2m > [22m[2mTelegram Bot Handlers[2m > [22m[2mContact Sharing (Login)[2m > [22m[2mshould link student when phone number matches
+[22m[39m✅ Successfully linked Student s1 with Chat ID 123
+
+[90mstdout[2m | tests/telegram-bot.test.ts[2m > [22m[2mTelegram Bot Handlers[2m > [22m[2mContact Sharing (Login)[2m > [22m[2mshould send failure message when no student matches
+[22m[39m📱 Received contact sharing from Chat ID: 123, Phone: +0000000000
+
+[90mstdout[2m | tests/telegram-bot.test.ts[2m > [22m[2mTelegram Bot Handlers[2m > [22m[2mContact Sharing (Login)[2m > [22m[2mshould send failure message when no student matches
+[22m[39m🔍 Student search result: Not Found
+
+[90mstderr[2m | tests/telegram-bot.test.ts[2m > [22m[2mTelegram Bot Handlers[2m > [22m[2mContact Sharing (Login)[2m > [22m[2mshould send failure message when no student matches
+[22m[39m❌ No student found matching phone number: +0000000000
+
+ [31m❯[39m tests/telegram-bot.test.ts [2m([22m[2m5 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 31[2mms[22m[39m
+       [32m✓[39m should send welcome message with contact sharing button[32m 8[2mms[22m[39m
+       [32m✓[39m should link student when phone number matches[32m 5[2mms[22m[39m
+       [32m✓[39m should send failure message when no student matches[32m 2[2mms[22m[39m
+[31m       [31m×[31m should show student status if linked[39m[32m 13[2mms[22m[39m
+       [32m✓[39m should show not logged in message if not linked[32m 1[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m tests/telegram-bot.test.ts[2m > [22mTelegram Bot Handlers[2m > [22m/status command[2m > [22mshould show student status if linked
+[31m[1mAssertionError[22m: expected "vi.fn()" to be called with arguments: [ …(2) ][90m
+
+Received: 
+
+[1m  1st vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   StringContaining "Profile: Alice",[90m
+[31m+   "👤 *Profile:* Alice[90m
+[31m+ 📚 *Status:* active[90m
+[31m+ 💰 *Balance:* 5 lessons",[90m
+[2m    "123",[22m
+[2m  ][22m
+[31m[90m
+
+Number of calls: [1m1[22m
+[31m[39m
+[36m [2m❯[22m tests/telegram-bot.test.ts:[2m105:35[22m[39m
+    [90m103| [39m      [35mawait[39m [34mhandleTelegramUpdate[39m(update)
+    [90m104| [39m      
+    [90m105| [39m      [34mexpect[39m(sendTelegramMessage)[33m.[39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                                  [31m^[39m
+    [90m106| [39m        expect[33m.[39m[34mstringContaining[39m([32m'Profile: Alice'[39m)[33m,[39m
+    [90m107| [39m        [32m'123'[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m4 passed[39m[22m[90m (5)[39m
+[2m   Start at [22m 08:51:38
+[2m   Duration [22m 3.24s[2m (transform 253ms, setup 293ms, import 221ms, tests 31ms, environment 2.04s)[22m
+

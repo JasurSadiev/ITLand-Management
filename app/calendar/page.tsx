@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { TIMEZONES } from "@/lib/constants"
 import { generateRecurringLessons } from "@/lib/lessons"
+import { notifications } from "@/lib/notifications/notifier"
 
 export default function CalendarPage() {
   const [lessons, setLessons] = useState<Lesson[]>([])
@@ -226,6 +227,21 @@ export default function CalendarPage() {
           reason: "Cancelled by teacher"
         }
       })
+      
+      // Notify students
+      const lessonToNotify = lessons.find(l => l.id === id)
+      if (lessonToNotify) {
+        for (const studentId of lessonToNotify.studentIds) {
+          const student = students.find(s => s.id === studentId)
+          if (student) {
+            await notifications.lessonCancelled(
+              student,
+              `${lessonToNotify.subject || 'Lesson'} on ${lessonToNotify.date} at ${lessonToNotify.time}`
+            )
+          }
+        }
+      }
+
       loadData()
     } catch (error) {
       console.error("Failed to cancel lesson:", error)
@@ -268,6 +284,12 @@ export default function CalendarPage() {
           await api.updateStudent(student.id, { lessonBalance: newBalance })
         }
       }
+      // Notify student
+      const student = students.find(s => s.id === payment.studentId)
+      if (student) {
+        notifications.paymentReceived(student, payment.amount)
+      }
+
       loadData()
       setPaymentFormOpen(false)
     } catch (error) {
@@ -348,6 +370,20 @@ export default function CalendarPage() {
       }
 
       loadData()
+      
+      // Notify students of reschedule
+      if (lessonToReschedule) {
+        lessonToReschedule.studentIds.forEach(studentId => {
+          const student = students.find(s => s.id === studentId)
+          if (student) {
+            notifications.lessonRescheduled(
+              student,
+              `Lesson moved to ${newDate} at ${newTime}`
+            )
+          }
+        })
+      }
+
       setRescheduleOpen(false)
       setLessonToReschedule(null)
     } catch (error) {
@@ -439,7 +475,20 @@ export default function CalendarPage() {
         // 4. Mark request as approved
         await api.updateRescheduleRequest(requestId, { status: "approved" })
 
-        // 5. Refresh data
+        // 5. Notify student
+        if (selectedLesson) {
+          selectedLesson.studentIds.forEach(studentId => {
+            const student = students.find(s => s.id === studentId)
+            if (student) {
+              notifications.lessonRescheduled(
+                student,
+                `Reschedule request approved! New time: ${newDate} at ${newTime}`
+              )
+            }
+          })
+        }
+
+        // 6. Refresh data
         loadData()
         setDetailsOpen(false)
         alert("Lesson rescheduled. Historical data saved for proof.")

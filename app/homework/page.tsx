@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import type { Student, Lesson, Homework } from "@/lib/types"
 import { useCustomization } from "@/lib/context"
 import { cn } from "@/lib/utils"
+import { notifications } from "@/lib/notifications/notifier"
 
 export default function HomeworkPage() {
   const [students, setStudents] = useState<Student[]>([])
@@ -100,6 +101,18 @@ export default function HomeworkPage() {
   const handleUpdateStatus = async (id: string, status: Homework["status"]) => {
     try {
       await api.updateHomework(id, { status })
+      
+      // Notify student if checked
+      if (status === "checked") {
+        const hwItem = homework.find(h => h.id === id)
+        if (hwItem) {
+          const student = students.find(s => s.id === hwItem.studentId)
+          if (student) {
+            notifications.homeworkChecked(student, hwItem.title)
+          }
+        }
+      }
+
       toast.success(`Homework status updated to ${status}`)
       loadData()
     } catch (error) {

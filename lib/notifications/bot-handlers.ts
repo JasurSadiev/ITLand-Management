@@ -40,12 +40,9 @@ export async function handleTelegramUpdate(update: any) {
  * /start command - Show login button
  */
 async function handleStartCommand(chatId: string) {
-  const botToken = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN
+  const message = "👋 *Welcome to ITLand Teacher Assistant!*\n\nTo receive notifications about your lessons and homework, I need to link your account. Please click the button below to share your contact info."
   
-  const payload = {
-    chat_id: chatId,
-    text: "👋 *Welcome to ITLand Teacher Assistant!*\n\nTo receive notifications about your lessons and homework, I need to link your account. Please click the button below to share your contact info.",
-    parse_mode: 'Markdown',
+  await sendTelegramMessage(message, chatId, {
     reply_markup: {
       keyboard: [
         [{ text: "📱 Login with Phone Number", request_contact: true }]
@@ -53,12 +50,6 @@ async function handleStartCommand(chatId: string) {
       resize_keyboard: true,
       one_time_keyboard: true
     }
-  }
-
-  await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
   })
 }
 
@@ -67,26 +58,30 @@ async function handleStartCommand(chatId: string) {
  */
 async function handleContactSharing(chatId: string, contact: { phone_number: string }) {
   const phoneNumber = contact.phone_number
+  console.log(`📱 Received contact sharing from Chat ID: ${chatId}, Phone: ${phoneNumber}`)
   
   try {
     const student = await api.getStudentByPhone(phoneNumber)
+    console.log(`🔍 Student search result: ${student ? `Found (${student.fullName})` : 'Not Found'}`)
     
     if (student) {
       // Link student with chat ID
       await api.updateStudent(student.id, { telegramChatId: chatId })
+      console.log(`✅ Successfully linked Student ${student.id} with Chat ID ${chatId}`)
       
       await sendTelegramMessage(
         `✅ *Success!*\n\nHello ${student.fullName}, your account has been linked. You will now receive notifications here!`,
         chatId
       )
     } else {
+      console.warn(`❌ No student found matching phone number: ${phoneNumber}`)
       await sendTelegramMessage(
-        "❌ *Authentication Failed*\n\nSorry, I couldn't find a student with this phone number in our system. Please contact your teacher.",
+        "❌ *Authentication Failed*\n\nSorry, I couldn't find a student with this phone number in our system. Please make sure your phone number in the portal matches the one you just shared.",
         chatId
       )
     }
-  } catch (error) {
-    console.error("Bot auth error:", error)
+  } catch (error: any) {
+    console.error("🚨 Bot auth error details:", error.message || error)
     await sendTelegramMessage("⚠️ An error occurred during authentication. Please try again later.", chatId)
   }
 }

@@ -111,10 +111,11 @@ export default function StudentSchedulePage() {
             }
             
             // 3. Send Telegram notification
+            // 3. Send Telegram notification to teacher
             await notifications.lessonCancelled(
-                student.fullName,
-                student.id,
-                `${lesson.subject || 'Lesson'} on ${lesson.date} at ${lesson.time}${late ? ' (Late cancellation - 1 credit deducted)' : ''}`
+                student,
+                `${lesson.subject || 'Lesson'} on ${lesson.date} at ${lesson.time}${late ? ' (Late cancellation - 1 credit deducted)' : ''}`,
+                true // Target teacher
             )
             
             setDetailsOpen(false)
@@ -154,11 +155,11 @@ export default function StudentSchedulePage() {
             })
         }
 
-        // 4. Send Telegram notification
+        // 4. Send Telegram notification to teacher
         await notifications.lessonRescheduled(
-            student.fullName,
-            student.id,
-            `${selectedLesson.subject || 'Lesson'} on ${selectedLesson.date} at ${selectedLesson.time}${isLateReschedule ? ' (Late reschedule - 1 credit deducted)' : ''}`
+            student,
+            `${selectedLesson.subject || 'Lesson'} on ${selectedLesson.date} at ${selectedLesson.time}${isLateReschedule ? ' (Late reschedule - 1 credit deducted)' : ''}`,
+            true // Target teacher
         )
 
         setRescheduleOpen(false)

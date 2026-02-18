@@ -12,4 +12,5 @@ export interface TelegramMessage {
   chat_id: string
   text: string
   parse_mode?: 'Markdown' | 'HTML'
+  reply_markup?: any
 }

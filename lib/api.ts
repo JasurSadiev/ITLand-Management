@@ -66,18 +66,24 @@ export const api = {
   },
 
   getStudentByPhone: async (phone: string): Promise<Student | null> => {
-    // Basic phone number cleaning
-    const cleanPhone = phone.replace(/\D/g, '')
-    if (!cleanPhone) return null
-    
-    // Fetch all students to match phone numbers (v0 scale helper)
+    // Robust matching: Normalize input and check suffixes
+    const normalizedInput = phone.replace(/\D/g, "")
+    // Handle cases where students might have saved phone with/without country code
+    if (normalizedInput.length < 7) return null
+
     const { data: students, error } = await supabase.from("students").select("*")
     if (error) throw error
     
     const matched = students.find((s: any) => {
       const dbPhone = (s.contact_phone || s.contact_whatsapp || "").replace(/\D/g, '')
+      if (!dbPhone) return false
+      
       // Match if one ends with other (handles missing country codes)
-      return dbPhone && (dbPhone.endsWith(cleanPhone) || cleanPhone.endsWith(dbPhone))
+      // We check the last 9 digits for a high-confidence match
+      const inputSuffix = normalizedInput.slice(-9)
+      const dbSuffix = dbPhone.slice(-9)
+      
+      return inputSuffix === dbSuffix && inputSuffix.length >= 7
     })
     
     return matched ? mapStudentFromDB(matched) : null

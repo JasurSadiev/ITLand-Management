@@ -27,26 +27,49 @@ describe('Telegram Notification System (TDD)', () => {
 
   describe('Routing Logic', () => {
     it('should route to teacher by default', async () => {
-      await notifications.lessonCancelled('Alice', 's1', 'Math at 10:00')
+      const student = { fullName: 'Alice', id: 's1' }
+      await notifications.lessonCancelled(student, 'Math at 10:00', true)
       expect(sendTelegramMessage).toHaveBeenCalledWith(
           expect.stringContaining('Lesson Cancelled'),
           undefined
       )
     })
 
-    it('should route to specific student chatId when targetChatId is present', async () => {
-      await notify({
-        type: 'lesson_cancelled',
-        studentName: 'Alice',
-        studentId: 's1',
-        details: 'Math at 10:00',
-        timestamp: new Date().toISOString(),
-        targetChatId: 'alice-chat-id'
-      })
+    it('should route to specific student chatId when present', async () => {
+      const student = { fullName: 'Alice', id: 's1', telegramChatId: 'alice-chat-id' }
+      await notifications.lessonCancelled(student, 'Math at 10:00')
       
       expect(sendTelegramMessage).toHaveBeenCalledWith(
           expect.any(String),
           'alice-chat-id'
+      )
+    })
+  })
+
+  describe('Integrated Event Alerts', () => {
+    const student = { fullName: 'Alice', id: 's1', telegramChatId: 'alice-chat-id' }
+
+    it('should format lesson cancelled alert correctly', async () => {
+      await notifications.lessonCancelled(student as any, 'Math on Monday')
+      expect(sendTelegramMessage).toHaveBeenCalledWith(
+        expect.stringContaining('Lesson Cancelled'),
+        'alice-chat-id'
+      )
+    })
+
+    it('should format lesson rescheduled alert correctly', async () => {
+      await notifications.lessonRescheduled(student as any, 'Math moved to Tuesday')
+      expect(sendTelegramMessage).toHaveBeenCalledWith(
+        expect.stringContaining('Lesson Rescheduled'),
+        'alice-chat-id'
+      )
+    })
+
+    it('should format payment received alert correctly', async () => {
+      await notifications.paymentReceived(student as any, 50)
+      expect(sendTelegramMessage).toHaveBeenCalledWith(
+        expect.stringContaining('Payment of $50 received'),
+        'alice-chat-id'
       )
     })
   })
