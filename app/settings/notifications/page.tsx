@@ -1,43 +1,77 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { Header } from "@/components/header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Bell, CheckCircle2, XCircle, Send } from "lucide-react"
+import { Bell, CheckCircle2, XCircle, Send, Link, RefreshCw } from "lucide-react"
 import { useCustomization } from "@/lib/context"
 import { cn } from "@/lib/utils"
-import { testTelegramConnection, sendTelegramMessage } from "@/lib/notifications/telegram"
 
 export default function NotificationSettingsPage() {
   const [testing, setTesting] = useState(false)
+  const [registering, setRegistering] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [webhookInfo, setWebhookInfo] = useState<any>(null)
   const { sidebarCollapsed } = useCustomization()
-
-  const handleTestConnection = async () => {
-    setTesting(true)
-    setTestResult(null)
-    
-    const result = await testTelegramConnection()
-    setTestResult(result)
-    setTesting(false)
-  }
-
-  const handleSendTestMessage = async () => {
-    setTesting(true)
-    const success = await sendTelegramMessage("🎉 *Test Notification*\\n\\nYour Telegram notifications are working perfectly!")
-    setTestResult({
-      success,
-      message: success ? "Test message sent successfully!" : "Failed to send test message. Check your credentials."
-    })
-    setTesting(false)
-  }
 
   const botToken = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN
   const chatId = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID
   const isConfigured = Boolean(botToken && chatId)
+
+  useEffect(() => {
+    if (isConfigured) {
+      fetchWebhookInfo()
+    }
+  }, [isConfigured])
+
+  const fetchWebhookInfo = async () => {
+    try {
+      const res = await fetch('/api/telegram/setup')
+      const data = await res.json()
+      setWebhookInfo(data)
+    } catch {}
+  }
+
+  const handleTestConnection = async () => {
+    setTesting(true)
+    setTestResult(null)
+    try {
+      const res = await fetch('/api/telegram/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'test' })
+      })
+      const data = await res.json()
+      setTestResult(data)
+    } catch {
+      setTestResult({ success: false, message: 'Request failed. Is the server running?' })
+    }
+    setTesting(false)
+  }
+
+  const handleRegisterWebhook = async () => {
+    setRegistering(true)
+    setTestResult(null)
+    try {
+      const res = await fetch('/api/telegram/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'register' })
+      })
+      const data = await res.json()
+      setTestResult(data)
+      if (data.success) fetchWebhookInfo()
+    } catch {
+      setTestResult({ success: false, message: 'Request failed. Is the server running?' })
+    }
+    setRegistering(false)
+  }
+
+  const webhookUrl = webhookInfo?.webhook?.result?.url
+  const webhookActive = Boolean(webhookUrl)
 
   return (
     <div className="min-h-screen bg-background">
@@ -52,7 +86,7 @@ export default function NotificationSettingsPage() {
         />
         
         <main className="p-4 lg:p-6 space-y-6">
-          {/* Configuration Status */}
+          {/* Bot Status */}
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -79,22 +113,57 @@ export default function NotificationSettingsPage() {
             <CardContent className="space-y-4">
               {isConfigured ? (
                 <>
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      ✅ Bot Token: Configured
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      ✅ Chat ID: Configured
-                    </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg border bg-muted/30">
+                      <p className="text-xs text-muted-foreground mb-1">Bot Token</p>
+                      <p className="text-sm font-medium">✅ Configured</p>
+                    </div>
+                    <div className="p-3 rounded-lg border bg-muted/30">
+                      <p className="text-xs text-muted-foreground mb-1">Teacher Chat ID</p>
+                      <p className="text-sm font-medium">✅ {chatId}</p>
+                    </div>
+                    <div className="p-3 rounded-lg border bg-muted/30">
+                      <p className="text-xs text-muted-foreground mb-1">Webhook Status</p>
+                      {webhookActive ? (
+                        <p className="text-sm font-medium text-emerald-600">✅ Active</p>
+                      ) : (
+                        <p className="text-sm font-medium text-amber-600">⚠️ Not registered</p>
+                      )}
+                    </div>
+                    {webhookUrl && (
+                      <div className="p-3 rounded-lg border bg-muted/30">
+                        <p className="text-xs text-muted-foreground mb-1">Webhook URL</p>
+                        <p className="text-xs font-mono truncate">{webhookUrl}</p>
+                      </div>
+                    )}
                   </div>
-                  
-                  <div className="flex gap-2">
-                    <Button onClick={handleTestConnection} disabled={testing}>
-                      {testing ? "Testing..." : "Test Connection"}
-                    </Button>
-                    <Button onClick={handleSendTestMessage} disabled={testing} variant="outline">
+
+                  {!webhookActive && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-sm text-amber-800 font-medium mb-1">⚠️ Webhook Not Registered</p>
+                      <p className="text-xs text-amber-700">
+                        The bot cannot receive messages until the webhook is registered. Click "Register Webhook" below.
+                        <br />
+                        <strong>Note:</strong> This requires your app to be deployed to a public HTTPS URL (not localhost).
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={handleTestConnection} disabled={testing || registering}>
                       <Send className="h-4 w-4 mr-2" />
-                      Send Test Message
+                      {testing ? "Sending..." : "Send Test Message"}
+                    </Button>
+                    <Button 
+                      onClick={handleRegisterWebhook} 
+                      disabled={testing || registering}
+                      variant="outline"
+                    >
+                      <Link className="h-4 w-4 mr-2" />
+                      {registering ? "Registering..." : "Register Webhook"}
+                    </Button>
+                    <Button onClick={fetchWebhookInfo} variant="ghost" size="icon">
+                      <RefreshCw className="h-4 w-4" />
                     </Button>
                   </div>
 
@@ -115,7 +184,7 @@ export default function NotificationSettingsPage() {
               ) : (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Telegram notifications are not configured yet. Follow the setup instructions below to get started.
+                    Telegram notifications are not configured yet. Follow the setup instructions below.
                   </p>
                 </div>
               )}
@@ -131,58 +200,60 @@ export default function NotificationSettingsPage() {
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 <div className="flex gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
-                    1
-                  </div>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">1</div>
                   <div className="space-y-2">
                     <h4 className="font-semibold">Create a Telegram Bot</h4>
                     <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
                       <li>Open Telegram and search for <code className="bg-muted px-1 rounded">@BotFather</code></li>
-                      <li>Send <code className="bg-muted px-1 rounded">/newbot</code> command</li>
-                      <li>Choose a name (e.g., "ITLand Teacher Assistant")</li>
-                      <li>Choose a username (must end in 'bot', e.g., "itland_teacher_bot")</li>
-                      <li>Copy the bot token (looks like: <code className="bg-muted px-1 rounded text-xs">123456789:ABCdef...</code>)</li>
+                      <li>Send <code className="bg-muted px-1 rounded">/newbot</code> and follow the prompts</li>
+                      <li>Copy the bot token provided</li>
                     </ol>
                   </div>
                 </div>
 
                 <div className="flex gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
-                    2
-                  </div>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">2</div>
                   <div className="space-y-2">
-                    <h4 className="font-semibold">Link Your Account (for Students)</h4>
-                    <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-                      <li>Open the bot in Telegram</li>
-                      <li>Click the <code className="bg-muted px-1 rounded">/start</code> button or type it</li>
-                      <li>Click the <b>"📱 Login with Phone Number"</b> button when prompted</li>
-                      <li>Share your contact info to automatically link your account</li>
-                    </ol>
-                    <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg">
-                      <p className="text-xs text-emerald-800">
-                        ✨ <b>New:</b> No need to manually copy Chat IDs anymore! The bot automatically matches students by their phone number.
+                    <h4 className="font-semibold">Add Credentials to Project</h4>
+                    <code className="block bg-slate-950 text-emerald-400 p-3 rounded text-sm">
+                      NEXT_PUBLIC_TELEGRAM_BOT_TOKEN=your_bot_token<br/>
+                      NEXT_PUBLIC_TELEGRAM_CHAT_ID=your_chat_id<br/>
+                      TELEGRAM_BOT_TOKEN=your_bot_token<br/>
+                      TELEGRAM_CHAT_ID=your_chat_id
+                    </code>
+                    <p className="text-sm text-muted-foreground">Restart the dev server after saving.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">3</div>
+                  <div className="space-y-2">
+                    <h4 className="font-semibold">Register Webhook (after deploying)</h4>
+                    <p className="text-sm text-muted-foreground">
+                      After deploying to a public URL, click <strong>"Register Webhook"</strong> above. This tells Telegram where to send bot messages.
+                    </p>
+                    <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                      <p className="text-xs text-blue-800">
+                        💡 Webhooks require HTTPS. For local testing, use <code className="bg-blue-100 px-1 rounded">ngrok</code> to expose your local server.
                       </p>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
-                    3
-                  </div>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">4</div>
                   <div className="space-y-2">
-                    <h4 className="font-semibold">Add Credentials to Project</h4>
+                    <h4 className="font-semibold">Link Student Accounts</h4>
                     <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-                      <li>Create/edit <code className="bg-muted px-1 rounded">.env.local</code> in your project root</li>
-                      <li>Add these lines:</li>
+                      <li>Students open the bot and send <code className="bg-muted px-1 rounded">/start</code></li>
+                      <li>They click <b>"📱 Share Contact"</b> to link their account</li>
+                      <li>The bot automatically matches them by phone number</li>
                     </ol>
-                    <code className="block bg-slate-950 text-emerald-400 p-3 rounded text-sm">
-                      NEXT_PUBLIC_TELEGRAM_BOT_TOKEN=your_bot_token_here<br/>
-                      NEXT_PUBLIC_TELEGRAM_CHAT_ID=your_chat_id_here
-                    </code>
-                    <p className="text-sm text-muted-foreground">
-                      Save the file and restart your dev server (<code className="bg-muted px-1 rounded">npm run dev</code>)
-                    </p>
+                    <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg">
+                      <p className="text-xs text-emerald-800">
+                        ✨ Once linked, students stay linked permanently — no need to re-link unless they block the bot.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -193,18 +264,18 @@ export default function NotificationSettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Notification Events</CardTitle>
-              <CardDescription>You'll receive Telegram notifications for these events</CardDescription>
+              <CardDescription>Active notification triggers</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-3">
                 {[
-                  { icon: "❌", title: "Lesson Cancelled", desc: "When a student cancels a lesson" },
-                  { icon: "📅", title: "Lesson Rescheduled", desc: "When a student requests to reschedule" },
-                  { icon: "📝", title: "Homework Submitted", desc: "When a student submits homework" },
-                  { icon: "⚠️", title: "Balance Alert", desc: "When a student's balance reaches 0" },
-                  { icon: "⏰", title: "No Upcoming Lessons", desc: "When a student has no lessons scheduled" },
-                  { icon: "💰", title: "Payment Received", desc: "When a new payment is recorded" },
-                  { icon: "🎉", title: "New Student", desc: "When a new student registers" },
+                  { icon: "❌", title: "Lesson Cancelled by Teacher", desc: "Notifies the student via Telegram" },
+                  { icon: "❌", title: "Lesson Cancelled by Student", desc: "Notifies the teacher via Telegram" },
+                  { icon: "📅", title: "Lesson Rescheduled", desc: "Student request → teacher notified; Approval → student notified" },
+                  { icon: "⏰", title: "30-min Reminder", desc: "Sent to students before each lesson (requires cron job)" },
+                  { icon: "📝", title: "Homework Checked", desc: "Notifies the student when teacher reviews homework" },
+                  { icon: "💰", title: "Payment Received", desc: "Notifies the student of payment confirmation" },
+                  { icon: "💬", title: "New Chat Message", desc: "Notifies the teacher when a student sends a message" },
                 ].map((event, i) => (
                   <div key={i} className="flex items-center gap-3 p-3 rounded-lg border bg-card">
                     <span className="text-2xl">{event.icon}</span>
