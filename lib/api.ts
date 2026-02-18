@@ -195,6 +195,16 @@ export const api = {
     return mapLessonFromDB(data)
   },
 
+  getUpcomingLessons: async (): Promise<Lesson[]> => {
+    const { data, error } = await supabase
+      .from("lessons")
+      .select("*")
+      .eq("status", "upcoming")
+      .order("date", { ascending: true })
+    if (error) throw error
+    return data.map(mapLessonFromDB)
+  },
+
   createLesson: async (lesson: Omit<Lesson, "id" | "createdAt">): Promise<Lesson> => {
     const { data, error } = await supabase
       .from("lessons")

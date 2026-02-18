@@ -2,6 +2,8 @@ import { sendTelegramMessage } from './telegram'
 import type { NotificationEvent } from './types'
 import type { Student } from '../types'
 
+const origin = () => typeof window !== 'undefined' ? window.location.origin : ''
+
 /**
  * Format notification message for Telegram
  */
@@ -21,9 +23,6 @@ function formatMessage(event: NotificationEvent): string {
   return message
 }
 
-/**
- * Get emoji for event type
- */
 function getEventEmoji(type: NotificationEvent['type']): string {
   const emojiMap: Record<NotificationEvent['type'], string> = {
     lesson_cancelled: '❌',
@@ -38,9 +37,6 @@ function getEventEmoji(type: NotificationEvent['type']): string {
   return emojiMap[type]
 }
 
-/**
- * Get title for event type
- */
 function getEventTitle(type: NotificationEvent['type']): string {
   const titleMap: Record<NotificationEvent['type'], string> = {
     lesson_cancelled: 'Lesson Cancelled',
@@ -59,7 +55,6 @@ function getEventTitle(type: NotificationEvent['type']): string {
  * Send notification for an event
  */
 export async function notify(event: NotificationEvent): Promise<boolean> {
-  // If targetChatId is not provided, we can't send anything
   if (!event.targetChatId && !process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID) {
     console.warn(`[Notifier] Missing targetChatId for event: ${event.type}. Skipping.`)
     return false
@@ -71,6 +66,12 @@ export async function notify(event: NotificationEvent): Promise<boolean> {
 
 /**
  * Quick notification helpers
+ * 
+ * Routing rules:
+ * - Teacher cancels lesson → notify STUDENT (student.telegramChatId)
+ * - Student cancels lesson → notify TEACHER (default NEXT_PUBLIC_TELEGRAM_CHAT_ID, no targetChatId)
+ * - Student reschedules → notify TEACHER
+ * - Teacher approves reschedule → notify STUDENT
  */
 export const notifications = {
   chatMessageReceived: (studentName: string, studentId: string, content: string) =>
@@ -80,92 +81,141 @@ export const notifications = {
       studentId,
       details: content,
       timestamp: new Date().toISOString(),
-      actionUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/chat`
+      actionUrl: `${origin()}/chat`
+      // No targetChatId → goes to teacher's default chat
     }),
 
-  lessonCancelled: (student: { fullName: string, id: string, telegramChatId?: string }, lessonDetails: string, isTeacherTarget: boolean = false) => 
+  /**
+   * Teacher cancelled a lesson → notify the student
+   */
+  lessonCancelledByTeacher: (student: Student, lessonDetails: string) =>
+    notify({
+      type: 'lesson_cancelled',
+      studentName: student.fullName,
+      studentId: student.id,
+      details: `Your lesson has been cancelled: ${lessonDetails}`,
+      timestamp: new Date().toISOString(),
+      actionUrl: `${origin()}/student/schedule`,
+      targetChatId: student.telegramChatId // Send to student
+    }),
+
+  /**
+   * Student cancelled a lesson → notify the teacher
+   */
+  lessonCancelledByStudent: (student: Student, lessonDetails: string) =>
     notify({
       type: 'lesson_cancelled',
       studentName: student.fullName,
       studentId: student.id,
       details: lessonDetails,
       timestamp: new Date().toISOString(),
-      actionUrl: isTeacherTarget ? `${window.location.origin}/calendar` : `${window.location.origin}/student/schedule`,
-      targetChatId: isTeacherTarget ? undefined : student.telegramChatId // undefined defaults to teacher chat ID in sendTelegramMessage
+      actionUrl: `${origin()}/calendar`,
+      // No targetChatId → goes to teacher's default chat
     }),
 
-  lessonRescheduled: (student: { fullName: string, id: string, telegramChatId?: string }, lessonDetails: string, isTeacherTarget: boolean = false) => 
+  /**
+   * @deprecated Use lessonCancelledByTeacher or lessonCancelledByStudent instead
+   */
+  lessonCancelled: (student: Student | { fullName: string, id: string, telegramChatId?: string }, lessonDetails: string, isTeacherTarget: boolean = false) =>
+    notify({
+      type: 'lesson_cancelled',
+      studentName: student.fullName,
+      studentId: student.id,
+      details: lessonDetails,
+      timestamp: new Date().toISOString(),
+      actionUrl: isTeacherTarget ? `${origin()}/calendar` : `${origin()}/student/schedule`,
+      targetChatId: isTeacherTarget ? undefined : (student as Student).telegramChatId
+    }),
+
+  /**
+   * Student requested reschedule → notify the teacher
+   */
+  lessonRescheduled: (student: Student | { fullName: string, id: string, telegramChatId?: string }, lessonDetails: string, isTeacherTarget: boolean = false) =>
     notify({
       type: 'lesson_rescheduled',
       studentName: student.fullName,
       studentId: student.id,
       details: lessonDetails,
       timestamp: new Date().toISOString(),
-      actionUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/student/schedule`,
-      targetChatId: student.telegramChatId
+      actionUrl: isTeacherTarget ? `${origin()}/calendar` : `${origin()}/student/schedule`,
+      targetChatId: isTeacherTarget ? undefined : (student as Student).telegramChatId
     }),
 
-  homeworkSubmitted: (studentName: string, studentId: string, homeworkTitle: string) => 
+  /**
+   * Teacher approved reschedule → notify the student
+   */
+  rescheduleApproved: (student: Student, newDateTime: string) =>
+    notify({
+      type: 'lesson_rescheduled',
+      studentName: student.fullName,
+      studentId: student.id,
+      details: `Your reschedule request was approved! New time: ${newDateTime}`,
+      timestamp: new Date().toISOString(),
+      actionUrl: `${origin()}/student/schedule`,
+      targetChatId: student.telegramChatId // Send to student
+    }),
+
+  homeworkSubmitted: (studentName: string, studentId: string, homeworkTitle: string) =>
     notify({
       type: 'homework_submitted',
       studentName,
       studentId,
       details: `Homework: "${homeworkTitle}"`,
       timestamp: new Date().toISOString(),
-      actionUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/homework`
-      // targetChatId: undefined (Teacher only)
+      actionUrl: `${origin()}/homework`
+      // No targetChatId → goes to teacher
     }),
 
   homeworkChecked: (student: Student, homeworkTitle: string) =>
     notify({
-      type: 'homework_submitted', // Re-using type for badge/title for now or we could add homework_checked if we want to be pedantic
+      type: 'homework_submitted',
       studentName: student.fullName,
       studentId: student.id,
       details: `Teacher checked your homework: "${homeworkTitle}"`,
       timestamp: new Date().toISOString(),
-      actionUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/student/homework`,
+      actionUrl: `${origin()}/student/homework`,
       targetChatId: student.telegramChatId
     }),
 
-  balanceZero: (student: Student) => 
+  balanceZero: (student: Student) =>
     notify({
       type: 'balance_zero',
       studentName: student.fullName,
       studentId: student.id,
       details: 'Student balance has reached 0. Please follow up.',
       timestamp: new Date().toISOString(),
-      actionUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/students/${student.id}`,
-      targetChatId: student.telegramChatId
+      actionUrl: `${origin()}/students/${student.id}`,
+      // No targetChatId → goes to teacher
     }),
 
-  paymentReceived: (student: Student, amount: number) => 
+  paymentReceived: (student: Student, amount: number) =>
     notify({
       type: 'payment_received',
       studentName: student.fullName,
       studentId: student.id,
       details: `Payment of $${amount} received. Thank you!`,
       timestamp: new Date().toISOString(),
-      actionUrl: student.telegramChatId ? `${window.location.origin}/student` : `${window.location.origin}/payments`,
+      actionUrl: student.telegramChatId ? `${origin()}/student` : `${origin()}/payments`,
       targetChatId: student.telegramChatId
     }),
 
-  noUpcomingLessons: (studentName: string, studentId: string) => 
+  noUpcomingLessons: (studentName: string, studentId: string) =>
     notify({
       type: 'no_upcoming_lessons',
       studentName,
       studentId,
       details: 'No lessons scheduled in the next 7 days',
       timestamp: new Date().toISOString(),
-      actionUrl: `${window.location.origin}/lessons`
+      actionUrl: `${origin()}/lessons`
     }),
 
-  studentRegistered: (studentName: string, studentId: string) => 
+  studentRegistered: (studentName: string, studentId: string) =>
     notify({
       type: 'student_registered',
       studentName,
       studentId,
       details: 'New student has registered',
       timestamp: new Date().toISOString(),
-      actionUrl: `${window.location.origin}/students/${studentId}`
+      actionUrl: `${origin()}/students/${studentId}`
     })
 }

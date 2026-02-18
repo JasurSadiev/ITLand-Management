@@ -228,13 +228,13 @@ export default function CalendarPage() {
         }
       })
       
-      // Notify students
+      // Notify students that teacher cancelled
       const lessonToNotify = lessons.find(l => l.id === id)
       if (lessonToNotify) {
         for (const studentId of lessonToNotify.studentIds) {
           const student = students.find(s => s.id === studentId)
           if (student) {
-            await notifications.lessonCancelled(
+            await notifications.lessonCancelledByTeacher(
               student,
               `${lessonToNotify.subject || 'Lesson'} on ${lessonToNotify.date} at ${lessonToNotify.time}`
             )
@@ -475,14 +475,14 @@ export default function CalendarPage() {
         // 4. Mark request as approved
         await api.updateRescheduleRequest(requestId, { status: "approved" })
 
-        // 5. Notify student
+        // 5. Notify student of approval
         if (selectedLesson) {
           selectedLesson.studentIds.forEach(studentId => {
             const student = students.find(s => s.id === studentId)
             if (student) {
-              notifications.lessonRescheduled(
+              notifications.rescheduleApproved(
                 student,
-                `Reschedule request approved! New time: ${newDate} at ${newTime}`
+                `${newDate} at ${newTime}`
               )
             }
           })
