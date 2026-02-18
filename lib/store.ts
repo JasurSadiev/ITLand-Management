@@ -16,7 +16,7 @@ const STORAGE_KEYS = {
 // Initial mock data
 const initialStudents: Student[] = [
   {
-    id: "1",
+    id: "00000000-0000-4000-a000-000000000001",
     fullName: "Emma Wilson",
     age: 14,
     parentName: "Sarah Wilson",
@@ -34,7 +34,7 @@ const initialStudents: Student[] = [
     updatedAt: "2024-01-15",
   },
   {
-    id: "2",
+    id: "00000000-0000-4000-a000-000000000002",
     fullName: "James Chen",
     age: 16,
     parentName: "Michael Chen",
@@ -52,7 +52,7 @@ const initialStudents: Student[] = [
     updatedAt: "2024-02-01",
   },
   {
-    id: "3",
+    id: "00000000-0000-4000-a000-000000000003",
     fullName: "Sofia Rodriguez",
     age: 12,
     parentName: "Maria Rodriguez",
@@ -70,7 +70,7 @@ const initialStudents: Student[] = [
     updatedAt: "2024-02-10",
   },
   {
-    id: "4",
+    id: "00000000-0000-4000-a000-000000000004",
     fullName: "Oliver Thompson",
     age: 17,
     contactEmail: "oliver.t@email.com",
@@ -94,7 +94,7 @@ const formatDate = (d: Date) => d.toISOString().split("T")[0]
 const initialLessons: Lesson[] = [
   {
     id: "l1",
-    studentIds: ["1"],
+    studentIds: ["00000000-0000-4000-a000-000000000001"],
     date: formatDate(today),
     time: "10:00",
     duration: 60,
@@ -105,7 +105,7 @@ const initialLessons: Lesson[] = [
   },
   {
     id: "l2",
-    studentIds: ["2"],
+    studentIds: ["00000000-0000-4000-a000-000000000002"],
     date: formatDate(today),
     time: "14:00",
     duration: 60,
@@ -127,7 +127,7 @@ const initialLessons: Lesson[] = [
   },
   {
     id: "l4",
-    studentIds: ["1"],
+    studentIds: ["00000000-0000-4000-a000-000000000001"],
     date: formatDate(new Date(today.getTime() - 86400000 * 2)),
     time: "10:00",
     duration: 60,
@@ -139,7 +139,7 @@ const initialLessons: Lesson[] = [
   },
   {
     id: "l5",
-    studentIds: ["2"],
+    studentIds: ["00000000-0000-4000-a000-000000000002"],
     date: formatDate(new Date(today.getTime() - 86400000 * 3)),
     time: "14:00",
     duration: 60,
@@ -153,7 +153,7 @@ const initialLessons: Lesson[] = [
 const initialPayments: Payment[] = [
   {
     id: "p1",
-    studentId: "1",
+    studentId: "00000000-0000-4000-a000-000000000001",
     amount: 200,
     method: "transfer",
     date: "2024-03-01",
@@ -163,7 +163,7 @@ const initialPayments: Payment[] = [
   },
   {
     id: "p2",
-    studentId: "3",
+    studentId: "00000000-0000-4000-a000-000000000003",
     amount: 180,
     method: "card",
     date: "2024-03-01",
@@ -176,7 +176,7 @@ const initialPayments: Payment[] = [
 const initialPackages: Package[] = [
   {
     id: "pkg1",
-    studentId: "1",
+    studentId: "00000000-0000-4000-a000-000000000001",
     totalLessons: 4,
     remainingLessons: 2,
     amount: 200,
@@ -199,7 +199,7 @@ const initialHomework: Homework[] = [
   {
     id: "h1",
     lessonId: "l4",
-    studentId: "1",
+    studentId: "00000000-0000-4000-a000-000000000001",
     title: "Complete Snake Game",
     description: "Finish the snake game project we started in class",
     dueDate: formatDate(new Date(today.getTime() + 86400000 * 3)),
@@ -290,7 +290,7 @@ const initialLessonContents: LessonContent[] = [
 ]
 
 const defaultUser: User = {
-  id: "u1",
+  id: "00000000-0000-4000-a000-000000000000",
   name: "Alex Teacher",
   email: "alex@teacherapp.com",
   role: "teacher",

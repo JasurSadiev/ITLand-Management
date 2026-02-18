@@ -5,18 +5,19 @@ const TELEGRAM_API_URL = 'https://api.telegram.org/bot'
 /**
  * Send a message via Telegram Bot API
  */
-export async function sendTelegramMessage(message: string): Promise<boolean> {
+export async function sendTelegramMessage(message: string, chatId?: string): Promise<boolean> {
   const botToken = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN
-  const chatId = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID
+  const defaultChatId = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID
+  const targetChatId = chatId || defaultChatId
 
-  if (!botToken || !chatId) {
+  if (!botToken || !targetChatId) {
     console.warn('Telegram credentials not configured. Skipping notification.')
     return false
   }
 
   try {
     const payload: TelegramMessage = {
-      chat_id: chatId,
+      chat_id: targetChatId as string,
       text: message,
       parse_mode: 'Markdown'
     }

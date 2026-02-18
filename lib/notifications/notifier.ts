@@ -59,7 +59,7 @@ function getEventTitle(type: NotificationEvent['type']): string {
  */
 export async function notify(event: NotificationEvent): Promise<boolean> {
   const message = formatMessage(event)
-  return await sendTelegramMessage(message)
+  return await sendTelegramMessage(message, event.targetChatId)
 }
 
 /**
@@ -76,24 +76,26 @@ export const notifications = {
       actionUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/chat`
     }),
 
-  lessonCancelled: (studentName: string, studentId: string, lessonDetails: string) => 
+  lessonCancelled: (studentName: string, studentId: string, lessonDetails: string, targetChatId?: string) => 
     notify({
       type: 'lesson_cancelled',
       studentName,
       studentId,
       details: lessonDetails,
       timestamp: new Date().toISOString(),
-      actionUrl: `${window.location.origin}/lessons`
+      actionUrl: `${window.location.origin}/lessons`,
+      targetChatId
     }),
 
-  lessonRescheduled: (studentName: string, studentId: string, lessonDetails: string) => 
+  lessonRescheduled: (studentName: string, studentId: string, lessonDetails: string, targetChatId?: string) => 
     notify({
       type: 'lesson_rescheduled',
       studentName,
       studentId,
       details: lessonDetails,
       timestamp: new Date().toISOString(),
-      actionUrl: `${window.location.origin}/lessons`
+      actionUrl: `${window.location.origin}/lessons`,
+      targetChatId
     }),
 
   homeworkSubmitted: (studentName: string, studentId: string, homeworkTitle: string) => 

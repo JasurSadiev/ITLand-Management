@@ -36,18 +36,29 @@ export async function GET(req: NextRequest) {
       const lessonStudents = students.filter(s => lesson.studentIds.includes(s.id));
       
       for (const student of lessonStudents) {
-        if (!student.contactWhatsapp) continue;
+        let sentAny = false;
 
-        const message = `Hello ${student.fullName}! 🎓 This is a reminder that your ${lesson.subject || "lesson"} starts in 1 hour at ${lesson.time}. See you there! 🚀`;
+        // 1. WhatsApp Reminder
+        if (student.contactWhatsapp) {
+          const message = `Hello ${student.fullName}! 🎓 This is a reminder that your ${lesson.subject || "lesson"} starts in 1 hour at ${lesson.time}. See you there! 🚀`;
+          const response = await sendWazzupMessage(student.contactWhatsapp, message);
+          if (response.success) sentAny = true;
+        }
+
+        // 2. Telegram Reminder
+        if (student.telegramChatId) {
+          const { sendTelegramMessage } = await import("@/lib/notifications/telegram");
+          const tgMessage = `🔔 *Lesson Reminder*\n\nHello ${student.fullName}! This is a reminder that your *${lesson.subject || "lesson"}* starts in 1 hour at *${lesson.time}*. 🎓\n\nSee you soon! 🚀`;
+          const tgSuccess = await sendTelegramMessage(tgMessage, student.telegramChatId);
+          if (tgSuccess) sentAny = true;
+        }
         
-        const response = await sendWazzupMessage(student.contactWhatsapp, message);
-        
-        if (response.success) {
+        if (sentAny) {
           // Mark as sent
-          await api.updateLesson(lesson.id, { whatsappSent: true });
+          await api.updateLesson(lesson.id, { whatsappSent: true, telegramSent: true });
           results.push({ student: student.fullName, status: "sent" });
         } else {
-          results.push({ student: student.fullName, status: "failed", error: response.error });
+          results.push({ student: student.fullName, status: "failed" });
         }
       }
     }

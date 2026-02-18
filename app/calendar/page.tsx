@@ -18,118 +18,9 @@ import { RescheduleDialog } from "@/components/calendar/reschedule-dialog"
 import { DeleteAlertDialog } from "@/components/calendar/delete-alert-dialog"
 import { useCustomization } from "@/lib/context"
 import { cn } from "@/lib/utils"
-
-// Helper function to generate recurring lessons
-function generateRecurringLessons(
-  lessonData: Omit<Lesson, "id" | "createdAt">,
-): Omit<Lesson, "id" | "createdAt">[] {
-  const lessons: Omit<Lesson, "id" | "createdAt">[] = []
-  
-  if (!lessonData.recurrenceEndDate) {
-    return [lessonData]
-  }
-
-  // Parse YYYY-MM-DD parts to avoid local timezone issues entirely
-  const [startYear, startMonth, startDay] = lessonData.date.split("-").map(Number)
-  const endDateObj = new Date(lessonData.recurrenceEndDate)
-  const parentId = Date.now().toString() // Use as a reference for all generated lessons
-  
-  if (lessonData.recurrenceType === "weekly") {
-    // Generate lessons every week on the same day
-    let currentOffset = 7
-    
-    // Initial lesson is already added by the caller usually, but logic here assumes we generate ALL recurring instances?
-    // Wait, the original logic generated the FIRST lesson inside the loop too: "let currentDate = new Date(startDate)"
-    // So we should start from the start date.
-    
-    // We'll interpret the start date as UTC to ensure stable addition of days
-    const startUtc = Date.UTC(startYear, startMonth - 1, startDay)
-    
-    let currentUtc = startUtc
-    let currentIsoDate = new Date(currentUtc).toISOString().split("T")[0]
-    
-    // Loop until end date
-    // Note: endDateObj parsing might be local or UTC depending on string, usually UTC if YYYY-MM-DD
-    // But comparing ISO strings is safest
-    const endIsoDate = lessonData.recurrenceEndDate
-    
-    // Add the first lesson (original)
-    lessons.push({
-        ...lessonData,
-        recurrenceParentId: parentId,
-        date: currentIsoDate
-    })
-    
-    // Add subsequent lessons
-    while (true) {
-        // Add 7 days in milliseconds (safe in UTC as there is no DST)
-        currentUtc += 7 * 24 * 60 * 60 * 1000
-        currentIsoDate = new Date(currentUtc).toISOString().split("T")[0]
-        
-        if (currentIsoDate > endIsoDate) break;
-        
-        lessons.push({
-          ...lessonData,
-          date: currentIsoDate,
-          recurrenceParentId: parentId,
-        })
-    }
-    
-    // The previous implementation was:
-    // let currentDate = new Date(startDate) 
-    // while (currentDate <= endDate) ... push ... add 7 days
-    
-    // My new implementation pushes the first one (start date) first, then adds 7 days.
-    // However, the caller `handleSaveLesson` does: `for (const lesson of recurringLessons) { store.addLesson(lesson) }`
-    // And if `generateRecurring` is true, it calls this INSTEAD of adding the single lesson. 
-    // So returning the list including the first one is correct.
-    
-  } else if (lessonData.recurrenceType === "specific-days" && lessonData.recurrenceDays?.length) {
-    // For specific days, we iterate day by day
-    // Safest way: Normalized UTC loop
-    const startUtc = Date.UTC(startYear, startMonth - 1, startDay)
-    const endIsoDate = lessonData.recurrenceEndDate
-    
-    let currentUtc = startUtc
-    let currentIsoDate = new Date(currentUtc).toISOString().split("T")[0]
-    
-    // Add "start" date lesson if it matches the day?
-    // Original logic: "while (currentDate <= endDate)... if matches... push" 
-    // It started from startDate.
-    
-    // Optimization: Loop day by day is fine for a year (365 iterations is nothing).
-    
-    while (currentIsoDate <= endIsoDate) {
-      const d = new Date(currentUtc)
-      const dayOfWeek = d.getUTCDay() // UTC Day 0=Sun, 6=Sat
-      
-      // Note: original logic used `currentDate.getDay()` which is LOCAL day of week.
-      // If we use UTC dates, we get UTC day of week.
-      // Does "Every Sunday" mean Sunday in User's TZ or Default TZ?
-      // Usually "Sunday" is "Sunday" regardless of timezone unless you are crossing midnight.
-      // Assuming lesson.date YYYY-MM-DD is the correct "Day" intended by user.
-      
-      if (lessonData.recurrenceDays.includes(dayOfWeek)) {
-        lessons.push({
-          ...lessonData,
-          date: currentIsoDate,
-          recurrenceParentId: parentId,
-        })
-      }
-      
-      // Add 1 day
-      currentUtc += 24 * 60 * 60 * 1000
-      currentIsoDate = new Date(currentUtc).toISOString().split("T")[0]
-    }
-  } else {
-    // One time or other - just return the single lesson (or handle makeup logic if any)
-    return [lessonData]
-  }
-  
-  return lessons
-}
-
+import { toast } from "sonner"
 import { TIMEZONES } from "@/lib/constants"
+import { generateRecurringLessons } from "@/lib/lessons"
 
 export default function CalendarPage() {
   const [lessons, setLessons] = useState<Lesson[]>([])
@@ -168,14 +59,16 @@ export default function CalendarPage() {
   const loadData = async () => {
     try {
       setIsLoading(true)
-      const [lessonsData, studentsData, packagesData] = await Promise.all([
+      const [lessonsData, studentsData, packagesData, teacherData] = await Promise.all([
         api.getLessons(),
         api.getStudents(),
         api.getPackages(),
+        api.getTeacherAvailability()
       ])
       setLessons(lessonsData)
       setStudents(studentsData)
       setPackages(packagesData)
+      setTeacher(teacherData)
     } catch (error) {
       console.error("Failed to load calendar data:", error)
     } finally {
@@ -259,58 +152,57 @@ export default function CalendarPage() {
     }
     setFormOpen(true)
   }
-
   const handleSaveLesson = async (
     lessonData: Omit<Lesson, "id" | "createdAt"> | Partial<Lesson>,
     generateRecurring = false
   ) => {
+    const loadingToast = toast.loading(selectedLesson ? "Updating lesson..." : "Scheduling lessons...")
     try {
       // Check for collision on the primary lesson (first one)
-      // Note: checking collisions for *all* recurring lessons in a loop might be heavy but safer.
-      // For now, let's check the main/first one.
       const dateToCheck = (lessonData as Lesson).date || selectedLesson?.date
       const timeToCheck = (lessonData as Lesson).time || selectedLesson?.time
-      const durationToCheck = (lessonData as Lesson).duration || selectedLesson?.duration || 60 // Default 60 if null?
+      const durationToCheck = (lessonData as Lesson).duration || selectedLesson?.duration || 60
       
       if (dateToCheck && timeToCheck && durationToCheck) {
         if (checkCollision(dateToCheck, timeToCheck, durationToCheck, selectedLesson?.id)) {
+           toast.dismiss(loadingToast)
            alert("Collision detected! This time slot overlaps with another lesson.")
            return
         }
       }
 
-      // NOTE: lessonData coming from form is "What the user typed" (e.g. 10:00).
-      // Since we set viewTimezone to "UTC" by default, and our recurrence logic uses UTC,
-      // we assume inputs are "Teacher's preferred time" which we store as is.
-      // If we wanted full "Schedule in New York time", we'd need to reverse-convert here.
-      // For simplicity/robustness given previous tasks: treat input as Reference/UTC time.
-      
       if (selectedLesson) {
         // Editing existing lesson
         await api.updateLesson(selectedLesson.id, lessonData)
+        toast.success("Lesson updated successfully", { id: loadingToast })
       } else if (generateRecurring && (lessonData as Lesson).recurrenceType !== "one-time") {
         // Generate recurring lessons
         const recurringLessons = generateRecurringLessons(lessonData as Omit<Lesson, "id" | "createdAt">)
         
-        // OPTIONAL: Check collision for all? 
-        // Iterate and check. If any collision, abort?
         const hasCollision = recurringLessons.some(l => checkCollision(l.date, l.time, l.duration))
         if (hasCollision) {
+             toast.dismiss(loadingToast)
              const confirmSave = confirm("Some recurring lessons overlap with existing bookings. Save anyway?")
              if (!confirmSave) return
+             toast.loading("Scheduling lessons...", { id: loadingToast })
         }
 
-        // Batch creation - much faster and reliability
+        // Batch creation
         await api.createLessons(recurringLessons)
+        toast.success(`Scheduled ${recurringLessons.length} lessons`, { id: loadingToast })
       } else {
         // Single lesson
         await api.createLesson(lessonData as Omit<Lesson, "id" | "createdAt">)
+        toast.success("Lesson scheduled", { id: loadingToast })
       }
-      loadData()
+      
       setFormOpen(false)
       setSelectedLesson(null)
+      await loadData()
     } catch (error) {
        console.error("Failed to save lesson:", error)
+       toast.error("Failed to save lesson", { id: loadingToast })
+       throw error // Re-throw to inform LessonForm
     }
   }
 
@@ -604,6 +496,7 @@ export default function CalendarPage() {
           <CalendarView
             lessons={adjustedLessons} // Use adjusted lessons here
             students={students}
+            teacher={teacher}
             view={view}
             onViewChange={setView}
             onLessonClick={handleLessonClick}

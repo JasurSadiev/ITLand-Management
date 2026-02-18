@@ -21,7 +21,8 @@ create table if not exists public.students (
     tags text[],
     lesson_balance integer default 0,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-    updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+    updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    telegram_chat_id text
 );
 
 -- Lessons Table
@@ -45,6 +46,7 @@ create table if not exists public.lessons (
     audit_info jsonb, -- Stores {rescheduled_from: string, penalty_charged: boolean, reason: string}
     cancellation_reason text,
     whatsapp_sent boolean default false,
+    telegram_sent boolean default false,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

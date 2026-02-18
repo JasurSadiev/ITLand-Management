@@ -151,17 +151,18 @@ export default function NotificationSettingsPage() {
                     2
                   </div>
                   <div className="space-y-2">
-                    <h4 className="font-semibold">Get Your Chat ID</h4>
+                    <h4 className="font-semibold">Link Your Account (for Students)</h4>
                     <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-                      <li>Send any message to your new bot (just say "hi")</li>
-                      <li>Open this URL in your browser (replace <code className="bg-muted px-1 rounded text-xs">&lt;YOUR_BOT_TOKEN&gt;</code>):</li>
+                      <li>Open the bot in Telegram</li>
+                      <li>Click the <code className="bg-muted px-1 rounded">/start</code> button or type it</li>
+                      <li>Click the <b>"📱 Login with Phone Number"</b> button when prompted</li>
+                      <li>Share your contact info to automatically link your account</li>
                     </ol>
-                    <code className="block bg-muted p-2 rounded text-xs break-all">
-                      https://api.telegram.org/bot&lt;YOUR_BOT_TOKEN&gt;/getUpdates
-                    </code>
-                    <p className="text-sm text-muted-foreground">
-                      Look for <code className="bg-muted px-1 rounded text-xs">"chat":{"{"}"id":123456789</code> and save that number
-                    </p>
+                    <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg">
+                      <p className="text-xs text-emerald-800">
+                        ✨ <b>New:</b> No need to manually copy Chat IDs anymore! The bot automatically matches students by their phone number.
+                      </p>
+                    </div>
                   </div>
                 </div>
 

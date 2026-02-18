@@ -21,6 +21,7 @@ const mapStudentFromDB = (data: any): Student => ({
   tags: data.tags || [],
   lessonBalance: data.lesson_balance,
   preferences: data.preferences,
+  telegramChatId: data.telegram_chat_id,
   createdAt: data.created_at,
   updatedAt: data.updated_at,
 })
@@ -44,6 +45,7 @@ const mapLessonFromDB = (data: any): Lesson => ({
   timezone: data.timezone,
   auditInfo: data.audit_info,
   cancellationReason: data.cancellation_reason,
+  telegramSent: data.telegram_sent,
   whatsappSent: data.whatsapp_sent,
   createdAt: data.created_at,
 })
@@ -61,6 +63,24 @@ export const api = {
     if (error) throw error
     if (!data) throw new Error("Student not found")
     return mapStudentFromDB(data)
+  },
+
+  getStudentByPhone: async (phone: string): Promise<Student | null> => {
+    // Basic phone number cleaning
+    const cleanPhone = phone.replace(/\D/g, '')
+    if (!cleanPhone) return null
+    
+    // Fetch all students to match phone numbers (v0 scale helper)
+    const { data: students, error } = await supabase.from("students").select("*")
+    if (error) throw error
+    
+    const matched = students.find((s: any) => {
+      const dbPhone = (s.contact_phone || s.contact_whatsapp || "").replace(/\D/g, '')
+      // Match if one ends with other (handles missing country codes)
+      return dbPhone && (dbPhone.endsWith(cleanPhone) || cleanPhone.endsWith(dbPhone))
+    })
+    
+    return matched ? mapStudentFromDB(matched) : null
   },
 
   createStudent: async (student: Omit<Student, "id" | "createdAt" | "updatedAt">): Promise<Student> => {
@@ -83,6 +103,7 @@ export const api = {
         notes: student.notes,
         tags: student.tags,
         lesson_balance: student.lessonBalance,
+        telegram_chat_id: student.telegramChatId,
       })
       .select()
       .single()
@@ -109,6 +130,7 @@ export const api = {
     if (updates.tags !== undefined) dbUpdates.tags = updates.tags
     if (updates.lessonBalance !== undefined) dbUpdates.lesson_balance = updates.lessonBalance
     if (updates.preferences !== undefined) dbUpdates.preferences = updates.preferences
+    if (updates.telegramChatId !== undefined) dbUpdates.telegram_chat_id = updates.telegramChatId
 
     const { data, error } = await supabase
       .from("students")
@@ -186,7 +208,10 @@ export const api = {
         is_makeup: lesson.isMakeup,
         meeting_link: lesson.meetingLink,
         timezone: lesson.timezone,
+        telegram_sent: lesson.telegramSent,
         whatsapp_sent: lesson.whatsappSent,
+        audit_info: lesson.auditInfo,
+        cancellation_reason: lesson.cancellationReason,
       })
       .select()
       .single()
@@ -214,7 +239,9 @@ export const api = {
           is_makeup: lesson.isMakeup,
           meeting_link: lesson.meetingLink,
           timezone: lesson.timezone,
-          whatsapp_sent: lesson.whatsappSent,
+          telegram_sent: lesson.telegramSent,
+          audit_info: lesson.auditInfo,
+          cancellation_reason: lesson.cancellationReason,
         }))
       )
       .select()
@@ -239,9 +266,10 @@ export const api = {
     if (updates.isMakeup !== undefined) dbUpdates.is_makeup = updates.isMakeup
     if (updates.meetingLink !== undefined) dbUpdates.meeting_link = updates.meetingLink
     if (updates.timezone !== undefined) dbUpdates.timezone = updates.timezone
+    if (updates.telegramSent !== undefined) dbUpdates.telegram_sent = updates.telegramSent
+    if (updates.whatsappSent !== undefined) dbUpdates.whatsapp_sent = updates.whatsappSent
     if (updates.auditInfo !== undefined) dbUpdates.audit_info = updates.auditInfo
     if (updates.cancellationReason !== undefined) dbUpdates.cancellation_reason = updates.cancellationReason
-    if (updates.whatsappSent !== undefined) dbUpdates.whatsapp_sent = updates.whatsappSent
 
     const { data, error } = await supabase.from("lessons").update(dbUpdates).eq("id", id).select().single()
     if (error) throw error
@@ -651,22 +679,18 @@ export const api = {
 
   // Teacher Profile & Availability (Public)
   getTeacherAvailability: async (teacherId?: string): Promise<User> => {
-      // For public portal, we might not have a teacherId. 
-      // We grab the first settings available if none provided.
-      let query = supabase.from("availability_settings").select("*")
-      if (teacherId) {
-        query = query.eq("user_id", teacherId)
-      } else {
-        // Fallback: strictly get a single row if it exists
-        query = query.limit(1)
-      }
-
-      const { data: settings } = await query.maybeSingle()
+      const resolvedId = teacherId || await api.getEffectiveUserId()
+      
+      const { data: settings } = await supabase
+        .from("availability_settings")
+        .select("*")
+        .eq("user_id", resolvedId)
+        .maybeSingle()
       
       const { data: blackout } = await supabase
         .from("blackout_slots")
         .select("*")
-        .eq("user_id", settings?.user_id || teacherId || "u1")
+        .eq("user_id", resolvedId)
 
       const defaultWorkingHours = [
         { dayOfWeek: 1, startTime: "09:00", endTime: "17:00", active: true },
@@ -677,7 +701,7 @@ export const api = {
       ]
 
       return {
-        id: settings?.user_id || teacherId || "u1",
+        id: resolvedId,
         name: "Teacher",
         email: "",
         role: "teacher",
@@ -711,7 +735,7 @@ export const api = {
     }
     
     // Last resort for demo
-    return "admin-1"
+    return "00000000-0000-4000-a000-000000000000"
   },
 
   updateTeacherAvailability: async (updates: { workingHours?: any[], timezone?: string, preferences?: any }): Promise<void> => {

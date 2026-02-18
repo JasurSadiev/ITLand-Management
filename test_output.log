@@ -1,0 +1,14 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/jasur/Downloads/teacher-admin-panel[39m
+
+ [32m✓[39m tests/notifications.test.ts[2m > [22mTelegram Notification System (TDD)[2m > [22mRouting Logic[2m > [22mshould route to teacher by default[32m 46[2mms[22m[39m
+ [32m✓[39m tests/notifications.test.ts[2m > [22mTelegram Notification System (TDD)[2m > [22mRouting Logic[2m > [22mshould route to specific student chatId when targetChatId is present[32m 1[2mms[22m[39m
+ [32m✓[39m tests/notifications.test.ts[2m > [22mTelegram Notification System (TDD)[2m > [22mReminder Logic[2m > [22mshould filter lessons starting in ~30 minutes[32m 2[2mms[22m[39m
+ [32m✓[39m tests/notifications.test.ts[2m > [22mTelegram Notification System (TDD)[2m > [22mReminder Logic[2m > [22mshould format a friendly reminder message[32m 1[2mms[22m[39m
+ [32m✓[39m tests/notifications.test.ts[2m > [22mTelegram Notification System (TDD)[2m > [22mStudent Linking Formatting[2m > [22mshould handle different phone formats (SKELETON)[32m 1[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m5 passed[39m[22m[90m (5)[39m
+[2m   Start at [22m 08:04:42
+[2m   Duration [22m 2.87s[2m (transform 225ms, setup 245ms, import 194ms, tests 54ms, environment 1.76s)[22m
+

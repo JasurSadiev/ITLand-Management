@@ -15,7 +15,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CalendarIcon, X } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { Lesson, Student, RecurrenceType } from "@/lib/types"
+import type { Lesson, Student, RecurrenceType, User } from "@/lib/types"
 import { format, parseISO } from "date-fns"
 import { AvailabilityPicker } from "./availability-picker"
 
@@ -27,7 +27,7 @@ interface LessonFormProps {
   lesson?: Lesson | null
   students: Student[]
   teacher?: User | null
-  onSave: (lesson: Omit<Lesson, "id" | "createdAt"> | Partial<Lesson>, generateRecurring?: boolean) => void
+  onSave: (lesson: Omit<Lesson, "id" | "createdAt"> | Partial<Lesson>, generateRecurring?: boolean) => Promise<void> | void
   onDelete?: (lesson: Lesson) => void
   defaultDate?: string
 }
@@ -57,11 +57,13 @@ export function LessonForm({ open, onOpenChange, lesson, students, onSave, onDel
     isMakeup: false,
     meetingLink: "",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    telegramSent: false,
   })
 
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | undefined>(undefined)
   const [makeupDates, setMakeupDates] = useState<Date[]>([])
   const [calendarOpen, setCalendarOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (lesson) {
@@ -88,31 +90,38 @@ export function LessonForm({ open, onOpenChange, lesson, students, onSave, onDel
     }
   }, [lesson, defaultDate])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (formData.studentIds && formData.studentIds.length > 0) {
-      const lessonData = {
-        ...formData,
-        recurrenceEndDate: recurrenceEndDate ? recurrenceEndDate.toISOString().split("T")[0] : undefined,
-      }
+      setIsSubmitting(true)
+      try {
+        const lessonData = {
+          ...formData,
+          recurrenceEndDate: recurrenceEndDate ? recurrenceEndDate.toISOString().split("T")[0] : undefined,
+        }
 
-      // For makeup lessons with specific dates
-      if (formData.recurrenceType === "makeup" && makeupDates.length > 0) {
-        // Save each makeup date as a separate lesson
-        makeupDates.forEach((date) => {
-          onSave({
-            ...lessonData,
-            date: date.toISOString().split("T")[0],
-            isMakeup: true,
-          }, false)
-        })
-      } else {
-        // For recurring lessons, pass flag to generate instances
-        const shouldGenerateRecurring = formData.recurrenceType !== "one-time" && !lesson
-        onSave(lessonData, shouldGenerateRecurring)
+        // For makeup lessons with specific dates
+        if (formData.recurrenceType === "makeup" && makeupDates.length > 0) {
+          // Save each makeup date as a separate lesson
+          await Promise.all(makeupDates.map((date) => 
+            onSave({
+              ...lessonData,
+              date: date.toISOString().split("T")[0],
+              isMakeup: true,
+            }, false)
+          ))
+        } else {
+          // For recurring lessons, pass flag to generate instances
+          const shouldGenerateRecurring = formData.recurrenceType !== "one-time" && !lesson
+          await onSave(lessonData, shouldGenerateRecurring)
+        }
+        
+        onOpenChange(false)
+      } catch (error) {
+        console.error("Submit failed", error)
+      } finally {
+        setIsSubmitting(false)
       }
-      
-      onOpenChange(false)
     }
   }
 
@@ -550,10 +559,10 @@ export function LessonForm({ open, onOpenChange, lesson, students, onSave, onDel
 
           {/* Subject */}
           <div className="space-y-2">
-            <Label>Subject</Label>
+            <label htmlFor="subject" className="text-sm font-medium">Subject</label>
             {selectedSubjects.size > 0 ? (
               <Select value={formData.subject} onValueChange={(value) => setFormData({ ...formData, subject: value })}>
-                <SelectTrigger>
+                <SelectTrigger id="subject">
                   <SelectValue placeholder="Select subject" />
                 </SelectTrigger>
                 <SelectContent>
@@ -566,6 +575,7 @@ export function LessonForm({ open, onOpenChange, lesson, students, onSave, onDel
               </Select>
             ) : (
               <Input
+                id="subject"
                 placeholder="Enter subject"
                 value={formData.subject || ""}
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
@@ -660,12 +670,13 @@ export function LessonForm({ open, onOpenChange, lesson, students, onSave, onDel
               <Button 
                 type="submit" 
                 disabled={
+                  isSubmitting ||
                   !formData.studentIds?.length || 
                   (formData.recurrenceType === "makeup" && makeupDates.length === 0) ||
                   (formData.recurrenceType === "specific-days" && (!formData.recurrenceDays?.length))
                 }
               >
-                {lesson ? "Save Changes" : formData.recurrenceType === "one-time" ? "Schedule Lesson" : "Schedule Lessons"}
+                {isSubmitting ? (lesson ? "Saving..." : "Scheduling...") : (lesson ? "Save Changes" : formData.recurrenceType === "one-time" ? "Schedule Lesson" : "Schedule Lessons")}
               </Button>
             </div>
           </div>

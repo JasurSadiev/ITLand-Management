@@ -5,6 +5,7 @@ export interface NotificationEvent {
   details: string
   timestamp: string
   actionUrl?: string
+  targetChatId?: string
 }
 
 export interface TelegramMessage {

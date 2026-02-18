@@ -27,6 +27,7 @@ export interface Student {
     confettiEnabled?: boolean
     showMotivation?: boolean
   }
+  telegramChatId?: string
 }
 
 export type RecurrenceType = "one-time" | "weekly" | "specific-days" | "makeup"
@@ -58,7 +59,8 @@ export interface Lesson {
     cancelledBy?: "teacher" | "student"
   }
   cancellationReason?: string
-  whatsappSent?: boolean // Tracks if reminder was sent
+  telegramSent?: boolean // Tracks if reminder was sent
+  whatsappSent?: boolean // Tracks if WhatsApp reminder was sent
 }
 
 export interface RescheduleRequest {

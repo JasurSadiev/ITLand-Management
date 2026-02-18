@@ -152,6 +152,7 @@ export function StudentForm({ open, onOpenChange, student, onSave }: StudentForm
               <div className="space-y-2">
                 <Label htmlFor="timezone">Timezone</Label>
                 <Select
+                  id={"timezone" as any}
                   value={formData.timezone}
                   onValueChange={(value) => setFormData({ ...formData, timezone: value })}
                 >
@@ -218,8 +219,9 @@ export function StudentForm({ open, onOpenChange, student, onSave }: StudentForm
             <h3 className="text-sm font-medium text-muted-foreground">Lesson Settings</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Lesson Type</Label>
+                <Label htmlFor="lessonType">Lesson Type</Label>
                 <Select
+                  id={"lessonType" as any}
                   value={formData.lessonType}
                   onValueChange={(value: "1-on-1" | "group") => setFormData({ ...formData, lessonType: value })}
                 >
@@ -242,8 +244,9 @@ export function StudentForm({ open, onOpenChange, student, onSave }: StudentForm
                 />
               </div>
               <div className="space-y-2">
-                <Label>Payment Model</Label>
+                <Label htmlFor="paymentModel">Payment Model</Label>
                 <Select
+                  id={"paymentModel" as any}
                   value={formData.paymentModel}
                   onValueChange={(value: "per-lesson" | "package" | "monthly") =>
                     setFormData({ ...formData, paymentModel: value })
@@ -260,8 +263,9 @@ export function StudentForm({ open, onOpenChange, student, onSave }: StudentForm
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Status</Label>
+                <Label htmlFor="status">Status</Label>
                 <Select
+                  id={"status" as any}
                   value={formData.status}
                   onValueChange={(value: "active" | "paused" | "finished") =>
                     setFormData({ ...formData, status: value })
@@ -305,7 +309,7 @@ export function StudentForm({ open, onOpenChange, student, onSave }: StudentForm
                   }
                 }}
               />
-              <Button type="button" variant="outline" onClick={() => addSubject(newSubject)}>
+              <Button type="button" variant="outline" onClick={() => addSubject(newSubject)} aria-label="Add subject">
                 Add
               </Button>
             </div>
@@ -352,7 +356,7 @@ export function StudentForm({ open, onOpenChange, student, onSave }: StudentForm
                   }
                 }}
               />
-              <Button type="button" variant="outline" onClick={() => addTag(newTag)}>
+              <Button type="button" variant="outline" onClick={() => addTag(newTag)} aria-label="Add tag">
                 Add
               </Button>
             </div>

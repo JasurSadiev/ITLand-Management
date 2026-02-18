@@ -29,11 +29,21 @@
 3. Save the file
 4. Restart your dev server (`npm run dev`)
 
-## Step 4: Test the Connection
+## Step 4: Local Development (Important!)
 
-Once you've added the credentials and restarted the server, I'll add a test button to verify the connection works!
+Telegram cannot reach `localhost`. To test the bot locally, you need a tunnel like **ngrok**:
+
+1.  **Install ngrok** if you haven't: `npm install -g ngrok`
+2.  **Start a tunnel**: `ngrok http 3000` (or your dev port)
+3.  **Copy the Forwarding URL** (e.g., `https://abcd-123.ngrok-free.app`)
+4.  **Register the Webhook** using the helper script:
+    ```bash
+    node scripts/set-webhook.js <YOUR_NGROK_URL>
+    ```
+
+Once set, Telegram will send messages to your local machine!
 
 ---
 
 > [!IMPORTANT]
-> Never commit `.env.local` to git! It's already in `.gitignore` by default.
+> Whenever you restart ngrok and get a new URL, you must run the `set-webhook.js` script again with the new URL.

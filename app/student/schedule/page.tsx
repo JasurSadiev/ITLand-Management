@@ -6,7 +6,7 @@ import { CalendarView } from "@/components/calendar/calendar-view"
 import { Globe } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { api } from "@/lib/api"
-import type { Lesson, Student } from "@/lib/types"
+import type { Lesson, Student, User } from "@/lib/types"
 import { toZonedTime, fromZonedTime, format } from "date-fns-tz"
 import { StudentLessonDetails } from "@/components/calendar/student-lesson-details"
 import { StudentRescheduleRequest } from "@/components/calendar/student-reschedule-request"
@@ -16,6 +16,7 @@ import { TIMEZONES } from "@/lib/constants"
 
 export default function StudentSchedulePage() {
   const [student, setStudent] = useState<Student | null>(null)
+  const [teacher, setTeacher] = useState<User | null>(null)
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<"day" | "week" | "month">("week")
@@ -42,11 +43,14 @@ export default function StudentSchedulePage() {
             return
         }
 
-        const [allStudents, allLessons] = await Promise.all([
+        const [allStudents, allLessons, teacherData] = await Promise.all([
             api.getStudents(),
-            api.getLessons()
+            api.getLessons(),
+            api.getTeacherAvailability()
         ])
 
+        setTeacher(teacherData)
+        
         const currentStudent = allStudents.find(s => s.id === studentId)
         if (currentStudent) {
             setStudent(currentStudent)
@@ -200,6 +204,7 @@ export default function StudentSchedulePage() {
         <CalendarView 
             lessons={adjustedLessons}
             students={[student]}
+            teacher={teacher}
             view={view}
             onViewChange={setView}
             onLessonClick={(lesson) => {

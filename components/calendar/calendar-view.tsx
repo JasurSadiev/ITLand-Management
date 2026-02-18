@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, DollarSign } from "lucide-react"
-import { toZonedTime, fromZonedTime } from "date-fns-tz"
+import { toZonedTime, fromZonedTime, format as formatTz } from "date-fns-tz"
 import { useMemo, useState, useEffect } from "react"
 import { format, getDay, parse } from "date-fns"
 import type { Lesson, Student, User } from "@/lib/types"
@@ -13,6 +13,7 @@ import { store } from "@/lib/store"
 interface CalendarViewProps {
   lessons: Lesson[]
   students: Student[]
+  teacher: User | null
   view: "day" | "week" | "month"
   onViewChange: (view: "day" | "week" | "month") => void
   onLessonClick: (lesson: Lesson, isPaid: boolean) => void
@@ -47,6 +48,7 @@ const CurrentTimeLine = ({ timezone = "UTC" }: { timezone?: string }) => {
 export function CalendarView({
   lessons,
   students,
+  teacher,
   view,
   onViewChange,
   onLessonClick,
@@ -54,36 +56,36 @@ export function CalendarView({
   onDateChange,
   timezone = "UTC",
 }: CalendarViewProps) {
-  const [teacher, setTeacher] = useState<User | null>(null)
-
-  useEffect(() => {
-    setTeacher(store.getCurrentUser())
-  }, [])
 
   const isTimeBlocked = (date: Date, timeStr: string) => {
     if (!teacher) return false
     
+    // 1. Determine the teacher's timezone
     const teacherTimezone = teacher.timezone || "UTC"
     
-    // Construct the absolute time represented by the cell
-    // date is the day (at 00:00 local view time effectively), timeStr is "HH:mm"
-    // We combine them to get the VIEW time
-    const dateStr = format(date, "yyyy-MM-dd")
-    const viewDateTime = fromZonedTime(`${dateStr} ${timeStr}`, timezone) // timezone is the prop passed to CalendarView (the view timezone)
+    // 2. Identify the absolute point in time for this calendar cell.
+    // 'date' is the day object. We extract its YYYY-MM-DD in the VIEW's timezone
+    // to avoid local machine timezone shifting the day.
+    const dateStr = formatTz(date, "yyyy-MM-dd", { timeZone: timezone })
     
-    // Convert this absolute time to TEACHER's timezone to check against working hours
+    // 3. Create a UTC timestamp from "YYYY-MM-DD HH:mm" in the VIEW's timezone
+    const viewDateTime = fromZonedTime(`${dateStr} ${timeStr}`, timezone)
+    
+    // 4. Convert that UTC timestamp to the TEACHER'S wall-clock time
     const teacherDateTime = toZonedTime(viewDateTime, teacherTimezone)
-    const teacherDayOfWeek = getDay(teacherDateTime)
-    const teacherTimeStr = format(teacherDateTime, "HH:mm")
     
-    // Check blackout slots (Assuming blackout dates are in teacher's timezone)
-    const teacherDateStr = format(teacherDateTime, "yyyy-MM-dd")
+    // 5. Extract day and time in Teacher's zone
+    const teacherDayOfWeek = getDay(teacherDateTime)
+    const teacherTimeStr = formatTz(teacherDateTime, "HH:mm", { timeZone: teacherTimezone })
+    const teacherDateStr = formatTz(teacherDateTime, "yyyy-MM-dd", { timeZone: teacherTimezone })
+    
+    // Check blackout slots
     const isBlackout = teacher.blackoutSlots?.some(bs => 
       bs.date === teacherDateStr && teacherTimeStr >= bs.startTime && teacherTimeStr < bs.endTime
     )
     if (isBlackout) return true
 
-    // Check working hours using Teacher's Day and Time
+    // Check working hours
     const dayWorkingHours = teacher.workingHours?.filter(wh => wh.dayOfWeek === teacherDayOfWeek && wh.active) || []
     if (dayWorkingHours.length === 0) return true // No working hours = blocked
 
