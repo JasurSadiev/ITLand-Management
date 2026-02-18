@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Users, Calendar, CreditCard, BookOpen, BarChart3, Settings, FolderOpen, LogOut, Clock, ChevronLeft, ChevronRight, Menu, MessageSquare } from "lucide-react"
+import { LayoutDashboard, Users, Calendar, CreditCard, BookOpen, BarChart3, Settings, FolderOpen, LogOut, Clock, ChevronLeft, ChevronRight, Menu, MessageSquare, Bell } from "lucide-react"
 import { store } from "@/lib/store"
 import { useCustomization } from "@/lib/context"
 import { Button } from "./ui/button"
@@ -18,6 +18,7 @@ const navigation = [
   { name: "Materials", href: "/materials", icon: FolderOpen },
   { name: "Insights", href: "/insights", icon: BarChart3 },
   { name: "Availability", href: "/settings/availability", icon: Clock },
+  { name: "Notifications", href: "/settings/notifications", icon: Bell },
 ]
 
 const bottomNav = [{ name: "Settings", href: "/settings", icon: Settings }]

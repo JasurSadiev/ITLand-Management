@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { RefreshCw, Save, Shield } from "lucide-react"
+import { RefreshCw, Save, Shield, Bell, Link as LinkIcon } from "lucide-react"
 import { store } from "@/lib/store"
 import { PersonalizationCard } from "@/components/personalization-card"
 import type { User } from "@/lib/types"
@@ -196,6 +196,28 @@ export default function SettingsPage() {
                     Reset to Demo Data
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Notifications */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  Telegram Notifications
+                </CardTitle>
+                <CardDescription>Configure bot notifications for students and lessons</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Set up Telegram notifications for lesson reminders, cancellations, homework updates, and more.
+                </p>
+                <a href="/settings/notifications">
+                  <Button variant="outline">
+                    <LinkIcon className="mr-2 h-4 w-4" />
+                    Open Notification Settings
+                  </Button>
+                </a>
               </CardContent>
             </Card>
 
